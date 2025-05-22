@@ -1,6 +1,9 @@
-This repository compiles Broadway show data from multiple sources to create an easy-to-use website to see which shows are currently playing.
+This repository compiles Broadway show data from multiple sources to create an easy-to-use website to see which shows are playing.
 
-Sources:
+**Sample:**
+* https://current-broadway-show-list-oqfd761f1-kyles-projects-38c512e7.vercel.app/
+
+**Sources:**
 * https://playbill.com/shows/broadway
 * https://en.wikipedia.org/wiki/Broadway_theatre
 
