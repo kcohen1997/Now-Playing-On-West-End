@@ -1,6 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import ShowList from "./ShowList";
+import ShowListWrapper from "./ShowListWrapper";
 
 function normalizeTitle(title) {
   return title
@@ -54,33 +54,42 @@ async function getBroadwayShows() {
 
 async function getBroadwayShowTypeFromWikipedia() {
   try {
-    const res = await axios.get("https://en.wikipedia.org/wiki/Broadway_theatre", {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-    });
+    const res = await axios.get(
+      "https://en.wikipedia.org/wiki/Broadway_theatre",
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+      }
+    );
 
     const $ = cheerio.load(res.data);
     const shows = [];
 
     const table = $("table.wikitable").first();
-    table.find("tbody tr").slice(1).each((i, el) => {
-      const theater = $(el).find("th");
-      const theaterName = $(theater).text().trim();
-      const cells = $(el).find("td");
-      if (cells.length < 7) return;
+    table
+      .find("tbody tr")
+      .slice(1)
+      .each((i, el) => {
+        const theater = $(el).find("th");
+        const theaterName = $(theater).text().trim();
+        const cells = $(el).find("td");
+        if (cells.length < 7) return;
 
-      const currentProductionRaw = $(cells[3]).text().trim();
-      const currentProduction = currentProductionRaw.replace(/(\s)?\[\d+\]/g, "").trim();
-      const type = $(cells[4]).text().trim();
-      const opening = $(cells[5]).text().trim();
-      const closing = $(cells[6]).text().trim();
+        const currentProductionRaw = $(cells[3]).text().trim();
+        const currentProduction = currentProductionRaw
+          .replace(/(\s)?\[\d+\]/g, "")
+          .trim();
+        const type = $(cells[4]).text().trim();
+        const opening = $(cells[5]).text().trim();
+        const closing = $(cells[6]).text().trim();
 
-      if (!theaterName || !currentProduction || !type || !opening || !closing) return;
+        if (!theaterName || !currentProduction || !type || !opening || !closing)
+          return;
 
-      shows.push({ theaterName, currentProduction, type, opening, closing });
-    });
+        shows.push({ theaterName, currentProduction, type, opening, closing });
+      });
 
     return shows;
   } catch (err) {
@@ -127,15 +136,20 @@ export default async function Page() {
       ...show,
       type: matched ? matched.type : "Unknown",
       openingdate: matched
-        ? serializeDate(matched.opening.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || matched.opening)
+        ? serializeDate(
+            matched.opening.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || matched.opening
+          )
         : "N/A",
       closingdate: matched
         ? matched.closing === "Open-ended"
           ? "Open-ended"
-          : serializeDate(matched.closing.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || matched.closing)
+          : serializeDate(
+              matched.closing.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ||
+                matched.closing
+            )
         : "N/A",
     };
   });
 
-  return <ShowList shows={enrichedShows} />;
+  return <ShowListWrapper shows={enrichedShows} />;
 }

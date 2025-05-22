@@ -49,6 +49,7 @@ export default function ShowList({ shows }) {
 
   // useMemo to avoid recalculating on every render unless dependencies change
   const filteredSortedShows = useMemo(() => {
+    console.log("TEST 2");
     const filtered = shows.filter((show) => {
       if (filter === "All") return true;
       const lowerType = (show.type || "").toLowerCase();
@@ -84,6 +85,11 @@ export default function ShowList({ shows }) {
       }
     });
   }, [shows, filter, sort]);
+
+  function handleSortChange(e) {
+    console.log("SORT");
+    setSort(e.target.value);
+  }
 
   return (
     <main
@@ -131,7 +137,7 @@ export default function ShowList({ shows }) {
             <select
               id="sort"
               value={sort}
-              onChange={(e) => setSort(e.target.value)}
+              onChange={handleSortChange}
               style={{
                 padding: "0.4rem 0.6rem",
                 borderRadius: "4px",
@@ -181,10 +187,7 @@ export default function ShowList({ shows }) {
           }}
         >
           {filteredSortedShows.map(
-            (
-              { title, imgSrc, type, openingdate, closingdate, link },
-              idx
-            ) => (
+            ({ title, imgSrc, type, openingdate, closingdate, link }, idx) => (
               <li key={`${title}-${type}-${idx}`} style={{ listStyle: "none" }}>
                 <div
                   style={{
@@ -200,7 +203,8 @@ export default function ShowList({ shows }) {
                     boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                     transition: "all 0.3s ease-in-out",
                     backgroundColor: "#EADB5A",
-                    fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                    fontFamily:
+                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
                     fontSize: "1rem",
                     color: "#000",
                   }}
