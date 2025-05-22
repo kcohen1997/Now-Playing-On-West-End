@@ -1,11 +1,10 @@
-// next.config.js
+// ✅ next.config.js (CommonJS)
 const isProd = process.env.NODE_ENV === 'production';
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
-  basePath: isProd ? '/<repo-name>' : '',
-  assetPrefix: isProd ? '/<repo-name>/' : '',
+  basePath: isProd ? '/current-broadway-show-list' : '',
+  assetPrefix: isProd ? '/current-broadway-show-list/' : '',
 };
 
-export default nextConfig;
+module.exports = nextConfig;
