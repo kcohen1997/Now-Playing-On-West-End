@@ -1,10 +1,11 @@
-/** @type {import('next').NextConfig} */
+// next.config.js
 const isProd = process.env.NODE_ENV === 'production';
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export', // Enable static export
-  basePath: isProd ? '/<repo-name>' : '', // GitHub Pages expects this
-  assetPrefix: isProd ? '/<repo-name>/' : '', // Needed for CSS/JS assets
+  output: 'export',
+  basePath: isProd ? '/<repo-name>' : '',
+  assetPrefix: isProd ? '/<repo-name>/' : '',
 };
 
-module.exports = nextConfig;
+export default nextConfig;
