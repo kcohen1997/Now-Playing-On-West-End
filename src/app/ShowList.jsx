@@ -86,11 +86,6 @@ export default function ShowList({ shows }) {
     });
   }, [shows, filter, sort]);
 
-  function handleSortChange(e) {
-    console.log("SORT");
-    setSort(e.target.value);
-  }
-
   return (
     <main
       style={{
@@ -137,7 +132,10 @@ export default function ShowList({ shows }) {
             <select
               id="sort"
               value={sort}
-              onChange={handleSortChange}
+              onChange={(e) => {
+                console.log("Sort changed", e.target.value);
+                setSort(e.target.value);
+              }}
               style={{
                 padding: "0.4rem 0.6rem",
                 borderRadius: "4px",
