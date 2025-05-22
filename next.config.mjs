@@ -1,7 +1,8 @@
-const isProd = process.env.NODE_ENV === 'production';
-
-export default {
+// next.config.js
+const nextConfig = {
   output: 'export',
-  basePath: isProd ? '/current-broadway-show-list' : '',
-  assetPrefix: isProd ? '/current-broadway-show-list/' : '',
+  basePath: '/current-broadway-show-list',
+  assetPrefix: '/current-broadway-show-list',
 };
+
+export default nextConfig;
