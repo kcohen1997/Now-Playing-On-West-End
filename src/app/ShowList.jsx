@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export default function ShowList({ shows }) {
   const [filter, setFilter] = useState("All");
   const [sort, setSort] = useState("a-z");
 
+  // Inject responsive styles only once
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -36,40 +37,58 @@ export default function ShowList({ shows }) {
       }
     `;
     document.head.appendChild(style);
-    return () => {
-      document.head.removeChild(style);
-    };
+    return () => document.head.removeChild(style);
   }, []);
 
-  const filteredShows = shows.filter((show) => {
-    if (filter === "All") return true;
-    const lowerType = (show.type || "").toLowerCase();
-    if (filter === "Musical") return lowerType.includes("musical");
-    if (filter === "Play") return lowerType.includes("play");
-    return lowerType !== "musical" && lowerType !== "play";
-  });
+  // Convert date strings to Date objects safely, or null if invalid
+  function toDate(date) {
+    if (!date || date === "N/A" || date === "Open-ended") return null;
+    const d = new Date(date);
+    return isNaN(d) ? null : d;
+  }
 
-  const sortedShows = filteredShows.slice().sort((a, b) => {
-    if (sort === "a-z") return a.title.localeCompare(b.title);
-    if (sort === "z-a") return b.title.localeCompare(a.title);
-    if (sort === "opening-latest") {
-      if (!(a.openingdate instanceof Date)) return 1;
-      if (!(b.openingdate instanceof Date)) return -1;
-      return b.openingdate - a.openingdate; // Newest first
-    }
-    if (sort === "opening-earliest") {
-      if (!(a.openingdate instanceof Date)) return 1;
-      if (!(b.openingdate instanceof Date)) return -1;
-      return a.openingdate - b.openingdate; // Oldest first
-    }
-    return 0;
-  });
+  // useMemo to avoid recalculating on every render unless dependencies change
+  const filteredSortedShows = useMemo(() => {
+    const filtered = shows.filter((show) => {
+      if (filter === "All") return true;
+      const lowerType = (show.type || "").toLowerCase();
+      if (filter === "Musical") return lowerType.includes("musical");
+      if (filter === "Play") return lowerType.includes("play");
+      if (filter === "Other")
+        return !["musical", "play"].some((t) => lowerType.includes(t));
+      return true;
+    });
+
+    return filtered.slice().sort((a, b) => {
+      switch (sort) {
+        case "a-z":
+          return a.title.localeCompare(b.title);
+        case "z-a":
+          return b.title.localeCompare(a.title);
+        case "opening-latest": {
+          const aDate = toDate(a.openingdate);
+          const bDate = toDate(b.openingdate);
+          if (!aDate) return 1;
+          if (!bDate) return -1;
+          return bDate - aDate;
+        }
+        case "opening-earliest": {
+          const aDate = toDate(a.openingdate);
+          const bDate = toDate(b.openingdate);
+          if (!aDate) return 1;
+          if (!bDate) return -1;
+          return aDate - bDate;
+        }
+        default:
+          return 0;
+      }
+    });
+  }, [shows, filter, sort]);
 
   return (
     <main
       style={{
         minHeight: "100vh",
-        // padding: "2rem",
         backgroundColor: "black",
         color: "white",
         boxSizing: "border-box",
@@ -94,7 +113,6 @@ export default function ShowList({ shows }) {
       </div>
 
       <div style={{ padding: "2rem" }}>
-        {/* Sort & Filter Controls */}
         <div
           className="top-controls"
           style={{
@@ -162,13 +180,16 @@ export default function ShowList({ shows }) {
             listStyle: "none",
           }}
         >
-          {sortedShows.map(
-            ({ title, imgSrc, type, openingdate, closingdate, link }, idx) => (
+          {filteredSortedShows.map(
+            (
+              { title, imgSrc, type, openingdate, closingdate, link },
+              idx
+            ) => (
               <li key={`${title}-${type}-${idx}`} style={{ listStyle: "none" }}>
                 <div
                   style={{
                     height: "100%",
-                    minHeight: "400px", // adjust for consistency
+                    minHeight: "400px",
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
@@ -179,8 +200,7 @@ export default function ShowList({ shows }) {
                     boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                     transition: "all 0.3s ease-in-out",
                     backgroundColor: "#EADB5A",
-                    fontFamily:
-                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                    fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
                     fontSize: "1rem",
                     color: "#000",
                   }}
@@ -207,7 +227,6 @@ export default function ShowList({ shows }) {
                       alt={title || "Broadway show poster"}
                       style={{
                         width: "100%",
-                        // height: "200px",
                         objectFit: "cover",
                         objectPosition: "center",
                         display: "block",
@@ -285,18 +304,18 @@ export default function ShowList({ shows }) {
   );
 }
 
-// Helper to format Date object or string
+// Helper to format date strings or special cases
 function formatDate(date) {
   if (!date || date === "N/A") return "N/A";
   if (date === "Open-ended") return "Open-ended";
-  try {
-    const d = new Date(date);
-    return d.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "N/A";
-  }
+
+  // Convert string to Date if needed
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d)) return "N/A";
+
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }

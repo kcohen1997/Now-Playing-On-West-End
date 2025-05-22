@@ -1,6 +1,5 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import stringSimilarity from "string-similarity";
 import ShowList from "./ShowList";
 
 function normalizeTitle(title) {
@@ -9,6 +8,12 @@ function normalizeTitle(title) {
     .replace(/[^a-z0-9\s]/gi, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function serializeDate(dateString) {
+  if (!dateString) return "N/A";
+  const d = new Date(dateString);
+  return isNaN(d) ? "N/A" : d;
 }
 
 async function getBroadwayShows() {
@@ -37,7 +42,7 @@ async function getBroadwayShows() {
         }
       }
 
-      shows.push({ title, imgSrc, link});
+      shows.push({ title, imgSrc, link });
     });
 
     return shows;
@@ -85,6 +90,9 @@ async function getBroadwayShowTypeFromWikipedia() {
 }
 
 export default async function Page() {
+  // Import stringSimilarity once here before mapping
+  const stringSimilarity = (await import("string-similarity")).default;
+
   const [shows, showTypes] = await Promise.all([
     getBroadwayShows(),
     getBroadwayShowTypeFromWikipedia(),
@@ -118,8 +126,14 @@ export default async function Page() {
     return {
       ...show,
       type: matched ? matched.type : "Unknown",
-      openingdate: matched.opening.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ? new Date(matched.opening.match(/^\d{4}-\d{2}-\d{2}/)?.[0]) : "N/A",
-      closingdate: matched.closing == "Open-ended" ? "Open-ended" :  matched.closing.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ? new Date(matched.closing.match(/^\d{4}-\d{2}-\d{2}/)?.[0]) : "N/A"
+      openingdate: matched
+        ? serializeDate(matched.opening.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || matched.opening)
+        : "N/A",
+      closingdate: matched
+        ? matched.closing === "Open-ended"
+          ? "Open-ended"
+          : serializeDate(matched.closing.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || matched.closing)
+        : "N/A",
     };
   });
 
