@@ -1,3 +1,10 @@
+This repository compiles Broadway show data from multiple sources to create an easy-to-use website to see which shows are currently playing.
+
+Sources:
+* https://playbill.com/shows/broadway
+* https://en.wikipedia.org/wiki/Broadway_theatre
+
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
