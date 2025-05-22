@@ -1,7 +1,4 @@
-// next.config.js
-const nextConfig = {
-  basePath: '/current-broadway-show-list',
-  assetPrefix: '/current-broadway-show-list',
-};
+/** @type {import('next').NextConfig} */
+const nextConfig = {};
 
 export default nextConfig;

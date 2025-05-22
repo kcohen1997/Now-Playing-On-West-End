@@ -1,6 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import ShowListWrapper from "./ShowListWrapper";
+import ShowList from "./ShowList";
 
 function normalizeTitle(title) {
   return title
@@ -151,5 +151,5 @@ export default async function Page() {
     };
   });
 
-  return <ShowListWrapper shows={enrichedShows} />;
+  return <ShowList shows={enrichedShows} />;
 }
