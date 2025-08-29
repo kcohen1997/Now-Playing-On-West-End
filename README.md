@@ -1,46 +1,96 @@
-This repository compiles Broadway show data from multiple sources to create an easy-to-use website to see which shows are playing.
+# Current Broadway Show List
 
-**Sample:**
-* https://current-broadway-show-list-oqfd761f1-kyles-projects-38c512e7.vercel.app/
+This project aggregates Broadway show data from multiple sources and presents it in one easy-to-read website. Updated every week, this website displays important information such as a show's closing date and whether the show is considered a play or musical.
 
-**Sources:**
-* https://playbill.com/shows/broadway
-* https://en.wikipedia.org/wiki/Broadway_theatre
+**Live Demo:** <a href="https://current-broadway-show-list-oqfd761f1-kyles-projects-38c512e7.vercel.app/" target="_blank">Click Here </a>  
 
+---
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## Data Sources
 
-## Getting Started
+The following public sources are used for this project:
 
-First, run the development server:
+- <a href="https://playbill.com/shows/broadway" target="_blank">Playbill: A Trusted Theatre Resource Since 1884 </a>: Displays up-to-date Broadway show list and Playbill Photos
+- <a href="https://en.wikipedia.org/wiki/Broadway_theatre" target="_blank">Wikipedia – Broadway Theatre</a>: Displays up-to-date Broadway opening and closing dates
+
+---
+
+## Local Deployment
+
+### Prerequisites
+
+In order to test this project on your own computer, make sure you have the following installed:
+
+- [Node.js](https://nodejs.org/) (LTS recommended)  
+- One of the following package managers:
+  - [**npm** (comes with Node.js)](https://www.npmjs.com/get-npm)  
+  - [**Yarn**](https://classic.yarnpkg.com/en/docs/install)
+  - [**pnpm**](https://pnpm.io/installation)
+  - [**Bun**](https://bun.sh/)
+
+### Step 1: Clone the repository 
+
+Open a terminal or command prompt on your computer and type in the following:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+   git clone https://github.com/kcohen1997/Current-Broadway-Show-List.git
+   cd current-broadway-show-list
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This will create a copy of the project and move you into the folder containing the project.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Step 2: Install Dependencies
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+After cloning the repository, you will need to install all of the required packages and dependencies.
 
-## Learn More
+Type in one of the following command (depends on which package manager you are using):
 
-To learn more about Next.js, take a look at the following resources:
+#### NPM
+```bash
+npm install
+```
+#### Yarn
+```bash
+yarn install
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### PNPM
+```bash
+pnpm install
+```
+#### Bun
+```bash
+bun install
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Step 3: Run the Development Server
 
-## Deploy on Vercel
+You are now ready to run the application locally on your computer. Type in one of the following commands:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### NPM
+```bash
+npm run dev
+```
+#### Yarn
+```bash
+yarn dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+#### PNPM
+```bash
+pnpm dev
+```
+
+#### Bun
+```bash
+bun dev
+```
+### Step 4: Access the Application
+
+After starting the development server, open your web browser and navigate to.
+
+[http://localhost:3000](http://localhost:3000)
+
+You should see the **Current Broadway Show List** homepage with most recent data.
+
+
