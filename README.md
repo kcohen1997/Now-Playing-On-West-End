@@ -4,6 +4,8 @@ This project aggregates Broadway show data from multiple sources and presents it
 
 **Live Demo:** <a href="https://current-broadway-show-list-oqfd761f1-kyles-projects-38c512e7.vercel.app/" target="_blank">Click Here </a>  
 
+This application is hosted online on <a href="https://vercel.com" target="_blank">Vercel</a>. Data displayed on this website is updated every Monday at 12:00 AM. 
+
 ---
 
 ## Data Sources
@@ -37,7 +39,7 @@ Open a terminal or command prompt on your computer and type in the following:
    cd current-broadway-show-list
 ```
 
-This will create a copy of the project and move you into the folder containing the project.
+This will create a copy of the project and send you to the folder containing the project.
 
 ### Step 2: Install Dependencies
 
