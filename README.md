@@ -2,7 +2,7 @@
 
 This project aggregates Broadway show data from multiple sources and presents it in one easy-to-read website. Updated every week, this website displays important information such as a show's closing date and whether the show is considered a play or musical.
 
-**Live Demo:** <a href="https://current-broadway-show-list-oqfd761f1-kyles-projects-38c512e7.vercel.app/" target="_blank">Click Here </a>  
+**Live Demo:** <a href="https://current-broadway-show-list.vercel.app/" target="_blank">Click Here </a>  
 
 This application is hosted online on <a href="https://vercel.com" target="_blank">Vercel</a>. Data displayed on this website is updated every Monday at 12:00 AM. 
 
