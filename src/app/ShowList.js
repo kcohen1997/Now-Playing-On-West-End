@@ -43,6 +43,7 @@ export default function ShowList({ shows }) {
   const filteredSortedShows = useMemo(() => {
     return shows
       .filter((show) => {
+        // Filter by type
         if (filter !== "All") {
           const type = (show.type || "").toLowerCase();
           if (filter === "Musical" && !type.includes("musical")) return false;
@@ -53,12 +54,17 @@ export default function ShowList({ shows }) {
           )
             return false;
         }
+
+        // Filter previews only
         if (showPreviewsOnly && !isInPreviews(show.openingdate)) return false;
+
+        // Filter search term
         if (
           searchTerm &&
           !show.title.toLowerCase().includes(searchTerm.toLowerCase())
         )
           return false;
+
         return true;
       })
       .sort((a, b) => {
@@ -107,8 +113,87 @@ export default function ShowList({ shows }) {
         Now Playing on West End
       </div>
 
-      {/* Controls placeholder */}
-      {/* Add filter/search/sort inputs here if needed */}
+      {/* Controls */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "1rem",
+          justifyContent: "center",
+          marginBottom: "2rem",
+          padding: "0 1rem",
+          width: "100%",
+        }}
+      >
+        {/* Filter */}
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          style={{
+            padding: "0.5rem",
+            borderRadius: "4px",
+            border: "1px solid #ccc",
+            flex: "0 0 150px", // fixed base width
+            minWidth: "200px",
+          }}
+        >
+          <option>All</option>
+          <option>Musical</option>
+          <option>Play</option>
+          <option>Other</option>
+        </select>
+
+        {/* Sort */}
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          style={{
+            padding: "0.5rem",
+            borderRadius: "4px",
+            border: "1px solid #ccc",
+            flex: "0 0 150px",
+            minWidth: "200px",
+          }}
+        >
+          <option value="a-z">Title A-Z</option>
+          <option value="z-a">Title Z-A</option>
+          <option value="opening-earliest">Opening Earliest</option>
+          <option value="opening-latest">Opening Latest</option>
+        </select>
+
+        {/* Previews Only */}
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.25rem",
+            flex: "0 0 180px",
+            minWidth: "150px",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={showPreviewsOnly}
+            onChange={(e) => setShowPreviewsOnly(e.target.checked)}
+          />
+          In Previews
+        </label>
+
+        {/* Search */}
+        <input
+          type="text"
+          placeholder="Search by title..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            padding: "0.5rem",
+            borderRadius: "4px",
+            border: "1px solid #ccc",
+            flex: "1 1 auto", // take remaining space
+            minWidth: "150px",
+          }}
+        />
+      </div>
 
       {/* Show grid */}
       {filteredSortedShows.length === 0 ? (
@@ -134,10 +219,7 @@ export default function ShowList({ shows }) {
           }}
         >
           {filteredSortedShows.map(
-            (
-              { title, imgSrc, type, openingdate, closingdate, link },
-              idx
-            ) => (
+            ({ title, imgSrc, type, openingdate, closingdate, link }, idx) => (
               <li key={`${title}-${type}-${idx}`}>
                 <div
                   style={{
@@ -152,7 +234,8 @@ export default function ShowList({ shows }) {
                     boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                     transition: "all 0.3s ease-in-out",
                     backgroundColor: "#FA8072",
-                    fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                    fontFamily:
+                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
                     fontSize: "1rem",
                     color: "#000",
                     position: "relative",
@@ -261,7 +344,8 @@ export default function ShowList({ shows }) {
                             e.currentTarget.style.backgroundColor = "#FA8072";
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "transparent";
+                            e.currentTarget.style.backgroundColor =
+                              "transparent";
                           }}
                         >
                           More Info
