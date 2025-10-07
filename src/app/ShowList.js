@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Image from "next/image";
 
 export default function ShowList({ shows }) {
   const [filter, setFilter] = useState("All");
@@ -109,7 +108,7 @@ export default function ShowList({ shows }) {
       </div>
 
       {/* Controls placeholder */}
-      {/* Add your filter/search/sort inputs here */}
+      {/* Add filter/search/sort inputs here if needed */}
 
       {/* Show grid */}
       {filteredSortedShows.length === 0 ? (
@@ -185,11 +184,9 @@ export default function ShowList({ shows }) {
                     </div>
                   )}
 
-                  <Image
+                  <img
                     src={imgSrc || DEFAULT_IMG}
                     alt={title || "Show poster"}
-                    width={400}
-                    height={400}
                     style={{
                       width: "100%",
                       height: "400px",
