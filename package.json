@@ -11,10 +11,12 @@
   "dependencies": {
     "axios": "^1.9.0",
     "cheerio": "^1.0.0",
+    "chrome-aws-lambda": "^10.1.0",
     "fs": "^0.0.1-security",
     "next": "15.3.2",
     "node-cache": "^5.1.2",
     "puppeteer": "^24.23.0",
+    "puppeteer-core": "^24.23.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "string-similarity": "^4.0.4"
