@@ -1,5 +1,3 @@
-// app/page.js
-
 import fs from "fs";
 import puppeteer from "puppeteer";
 import axios from "axios";
@@ -26,6 +24,15 @@ function serializeDate(dateString) {
   return isNaN(d) ? "N/A" : d.toISOString().split("T")[0];
 }
 
+// --- helper to normalize image URLs ---
+function normalizeUrl(url) {
+  if (!url) return null;
+  if (url.startsWith("//")) url = "https:" + url;
+  if (url.startsWith("/")) url = "https://www.londontheatre.co.uk" + url;
+  if (url.startsWith("http://")) url = url.replace("http://", "https://");
+  return url;
+}
+
 // ---------- Puppeteer Scraper ----------
 async function getWestEndShows() {
   let browser;
@@ -50,7 +57,6 @@ async function getWestEndShows() {
       waitUntil: "networkidle2",
     });
 
-    // Incremental scroll for lazy-loading
     await page.evaluate(async () => {
       const distance = 1000;
       const delay = 1000;
@@ -75,9 +81,11 @@ async function getWestEndShows() {
         if (sources.length > 0) {
           const srcset = sources[sources.length - 1].getAttribute("srcset");
           if (srcset) {
-            const urls = srcset.split(",").map((s) => s.trim().split(" ")[0]);
-            const firstValid = urls.find((u) => u && u.length > 0);
-            if (firstValid) return { url: firstValid, method: "srcset" };
+            const urls = srcset
+              .split(",")
+              .map((s) => s.trim().split(" ")[0])
+              .filter(Boolean);
+            if (urls.length > 0) return { url: urls[0], method: "srcset" };
           }
         }
 
@@ -140,6 +148,9 @@ async function getWestEndShows() {
 
       return { shows, debug };
     });
+
+    // normalize all URLs to absolute HTTPS
+    shows.forEach((s) => (s.imgSrc = normalizeUrl(s.imgSrc)));
 
     debug.forEach((d) => {
       if (!d.imgSrc) console.warn(`⚠️ Missing image for "${d.title}"`);
@@ -260,7 +271,7 @@ export default async function Page() {
     return {
       ...wikiShow,
       link: matchedPuppet?.link || null,
-      imgSrc: matchedPuppet?.imgSrc || DEFAULT_IMG, // fallback to default
+      imgSrc: matchedPuppet?.imgSrc || DEFAULT_IMG,
     };
   });
 
