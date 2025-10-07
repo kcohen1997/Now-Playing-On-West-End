@@ -1,6 +1,16 @@
+// app/page.js
+
+import fs from "fs";
+import puppeteer from "puppeteer";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import NodeCache from "node-cache";
 import ShowList from "./ShowList";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+const cache = new NodeCache({ stdTTL: 60 * 60 });
 
 function normalizeTitle(title) {
   return title
@@ -13,49 +23,142 @@ function normalizeTitle(title) {
 function serializeDate(dateString) {
   if (!dateString) return "N/A";
   const d = new Date(dateString);
-  return isNaN(d) ? "N/A" : d;
+  return isNaN(d) ? "N/A" : d.toISOString().split("T")[0];
 }
 
-async function getBroadwayShows() {
+// ---------- Puppeteer Scraper ----------
+async function getWestEndShows() {
+  let browser;
+
   try {
-    const res = await axios.get("https://playbill.com/shows/broadway", {
-      headers: {
-        "User-Agent": "Mozilla/5.0 ...",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+      ],
     });
 
-    const $ = cheerio.load(res.data);
-    const shows = [];
+    const page = await browser.newPage();
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+    );
 
-    $("div.show-container").each((i, el) => {
-      const title = $(el).find("div.prod-title").text().trim();
-      const link = $(el).find("div.prod-title a").attr("href");
-      if (!title || !link) return;
+    console.log("🔄 Navigating to LondonTheatre.co.uk...");
+    await page.goto("https://www.londontheatre.co.uk/whats-on", {
+      waitUntil: "networkidle2",
+    });
 
-      let imgSrc = null;
-      const imgEl = $(el).find("div.cover-container a img").first();
-      if (imgEl.length) {
-        imgSrc = imgEl.attr("src");
-        if (imgSrc && imgSrc.startsWith("//")) {
-          imgSrc = "https:" + imgSrc;
+    // Incremental scroll for lazy-loading
+    await page.evaluate(async () => {
+      const distance = 1000;
+      const delay = 1000;
+      for (let i = 0; i < 5; i++) {
+        window.scrollBy(0, distance);
+        await new Promise((res) => setTimeout(res, delay));
+      }
+    });
+
+    await page.waitForSelector("#product-list-grid-3");
+
+    const html = await page.content();
+    await fs.promises.writeFile("/tmp/theatre_snapshot.html", html);
+
+    const { shows, debug } = await page.evaluate(() => {
+      const items = Array.from(
+        document.querySelectorAll("#product-list-grid-3 .MuiGrid-item")
+      );
+
+      function getImage(el) {
+        const sources = el.querySelectorAll("picture source[srcset]");
+        if (sources.length > 0) {
+          const srcset = sources[sources.length - 1].getAttribute("srcset");
+          if (srcset) {
+            const urls = srcset.split(",").map((s) => s.trim().split(" ")[0]);
+            const firstValid = urls.find((u) => u && u.length > 0);
+            if (firstValid) return { url: firstValid, method: "srcset" };
+          }
         }
+
+        const imgEl =
+          el.querySelector("picture img") || el.querySelector("img");
+        if (imgEl) {
+          const url =
+            imgEl.getAttribute("src") ||
+            imgEl.getAttribute("data-src") ||
+            imgEl.getAttribute("data-lazy-src") ||
+            imgEl
+              .getAttribute("srcset")
+              ?.split(",")
+              .pop()
+              .trim()
+              .split(" ")[0] ||
+            null;
+          if (url) return { url, method: "img/src" };
+        }
+
+        const inlineBg = el.querySelector("[style*='background-image']")?.style
+          .backgroundImage;
+        if (inlineBg)
+          return {
+            url: inlineBg.replace(/^url\(["']?/, "").replace(/["']?\)$/, ""),
+            method: "inline-background",
+          };
+
+        const compBg = getComputedStyle(el).backgroundImage;
+        if (compBg && compBg !== "none")
+          return {
+            url: compBg.replace(/^url\(["']?/, "").replace(/["']?\)$/, ""),
+            method: "computed-background",
+          };
+
+        return { url: null, method: "none" };
       }
 
-      shows.push({ title, imgSrc, link });
+      const debug = [];
+      const shows = items
+        .map((el) => {
+          const anchor = el.querySelector("a");
+          const link = anchor ? anchor.href : null;
+
+          const titleAttr = el
+            .querySelector("[data-test-id]")
+            ?.getAttribute("data-test-id");
+          const title = titleAttr
+            ? titleAttr.replace("poster-", "").trim()
+            : null;
+
+          const imgData = getImage(el);
+          if (!title || !link) return null;
+
+          debug.push({ title, imgSrc: imgData.url, method: imgData.method });
+
+          return { title, link, imgSrc: imgData.url };
+        })
+        .filter(Boolean);
+
+      return { shows, debug };
+    });
+
+    debug.forEach((d) => {
+      if (!d.imgSrc) console.warn(`⚠️ Missing image for "${d.title}"`);
     });
 
     return shows;
   } catch (err) {
-    console.error("Failed to fetch Broadway shows:", err);
+    console.error("❌ Failed to fetch West End shows:", err);
     return [];
+  } finally {
+    if (browser) await browser.close();
   }
 }
 
-async function getBroadwayShowTypeFromWikipedia() {
+// ---------- Wikipedia Scraper ----------
+async function getWestEndShowInfoFromWikipedia() {
   try {
     const res = await axios.get(
-      "https://en.wikipedia.org/wiki/Broadway_theatre",
+      "https://en.wikipedia.org/wiki/West_End_theatre",
       {
         headers: {
           "User-Agent": "Mozilla/5.0",
@@ -66,90 +169,108 @@ async function getBroadwayShowTypeFromWikipedia() {
 
     const $ = cheerio.load(res.data);
     const shows = [];
+    const table = $("table.wikitable.sortable").first();
+    if (!table.length) return [];
 
-    const table = $("table.wikitable").first();
-    table
-      .find("tbody tr")
-      .slice(1)
-      .each((i, el) => {
-        const theater = $(el).find("th");
-        const theaterName = $(theater).text().trim();
-        const cells = $(el).find("td");
-        if (cells.length < 7) return;
+    table.find("tbody tr").each((_, el) => {
+      const theaterName = $(el).find("th").text().trim();
+      const cells = $(el).find("td");
+      if (!theaterName || cells.length < 5) return;
 
-        const currentProductionRaw = $(cells[3]).text().trim();
-        const currentProduction = currentProductionRaw
-          .replace(/(\s)?\[\d+\]/g, "")
-          .trim();
-        const type = $(cells[4]).text().trim();
-        const opening = $(cells[5]).text().trim();
-        const closing = $(cells[6]).text().trim();
+      const currentProductionRaw =
+        $(cells[4]).text().trim() || $(cells[3]).text().trim();
+      const type = $(cells[5]).text().trim() || "Unknown";
+      const opening = $(cells[6]).text().trim();
+      const closing = $(cells[7]).text().trim();
 
-        if (!theaterName || !currentProduction || !type || !opening || !closing)
-          return;
+      if (!currentProductionRaw || currentProductionRaw === "•") return;
 
-        shows.push({ theaterName, currentProduction, type, opening, closing });
+      const currentProduction = currentProductionRaw
+        .replace(/(\s)?\[\d+\]/g, "")
+        .trim();
+
+      shows.push({
+        title: currentProduction,
+        theaterName,
+        type,
+        openingdate: serializeDate(
+          opening.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || opening
+        ),
+        closingdate:
+          closing === "Open-ended"
+            ? "Open-ended"
+            : serializeDate(
+                closing.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || closing
+              ),
       });
+    });
 
     return shows;
   } catch (err) {
-    console.error("Failed to fetch Broadway shows from Wikipedia:", err);
+    console.error("❌ Failed to fetch West End show info from Wikipedia:", err);
     return [];
   }
 }
 
-export default async function Page() {
-  // Import stringSimilarity once here before mapping
-  const stringSimilarity = (await import("string-similarity")).default;
+// ---------- Cached Data Fetcher ----------
+async function getCachedShows() {
+  const cached = cache.get("west-end-shows");
+  if (cached) return cached;
 
-  const [shows, showTypes] = await Promise.all([
-    getBroadwayShows(),
-    getBroadwayShowTypeFromWikipedia(),
+  const [puppetShows, wikiShows] = await Promise.all([
+    getWestEndShows(),
+    getWestEndShowInfoFromWikipedia(),
   ]);
 
-  const enrichedShows = shows.map((show) => {
-    const normTitle = normalizeTitle(show.title);
+  const data = { puppetShows, wikiShows };
+  cache.set("west-end-shows", data);
+  return data;
+}
 
-    let matched = showTypes.find((wikiShow) =>
-      normalizeTitle(wikiShow.currentProduction).includes(normTitle)
+// ---------- Main Page Component ----------
+export default async function Page() {
+  const stringSimilarity = (await import("string-similarity")).default;
+  const { puppetShows, wikiShows } = await getCachedShows();
+
+  const DEFAULT_IMG =
+    "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
+
+  const enrichedShows = wikiShows.map((wikiShow) => {
+    const normWikiTitle = normalizeTitle(wikiShow.title);
+    let matchedPuppet = puppetShows.find((ps) =>
+      normalizeTitle(ps.title).includes(normWikiTitle)
     );
 
-    if (!matched) {
+    if (!matchedPuppet) {
       let bestMatch = null;
       let highestScore = 0;
-      for (const wikiShow of showTypes) {
+      for (const ps of puppetShows) {
         const similarity = stringSimilarity.compareTwoStrings(
-          normTitle,
-          normalizeTitle(wikiShow.currentProduction)
+          normalizeTitle(ps.title),
+          normWikiTitle
         );
         if (similarity > highestScore) {
           highestScore = similarity;
-          bestMatch = wikiShow;
+          bestMatch = ps;
         }
       }
-      if (highestScore > 0.6) {
-        matched = bestMatch;
-      }
+      if (highestScore > 0.6) matchedPuppet = bestMatch;
     }
 
     return {
-      ...show,
-      type: matched ? matched.type : "Unknown",
-      openingdate: matched
-        ? serializeDate(
-            matched.opening.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || matched.opening
-          )
-        : "N/A",
-      closingdate: matched
-        ? matched.closing === "Open-ended"
-          ? "Open-ended"
-          : serializeDate(
-              matched.closing.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ||
-                matched.closing
-            )
-        : "N/A",
+      ...wikiShow,
+      link: matchedPuppet?.link || null,
+      imgSrc: matchedPuppet?.imgSrc || DEFAULT_IMG, // fallback to default
     };
   });
+
+  if (enrichedShows.length === 0) {
+    return (
+      <p className="text-center text-gray-500 mt-10">
+        No West End shows found at this time.
+      </p>
+    );
+  }
 
   return <ShowList shows={enrichedShows} />;
 }

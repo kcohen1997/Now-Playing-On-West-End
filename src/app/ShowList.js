@@ -8,6 +8,9 @@ export default function ShowList({ shows }) {
   const [showPreviewsOnly, setShowPreviewsOnly] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const DEFAULT_IMG =
+    "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
+
   // Inject responsive styles once
   useEffect(() => {
     const style = document.createElement("style");
@@ -107,10 +110,11 @@ export default function ShowList({ shows }) {
         boxSizing: "border-box",
       }}
     >
+      {/* Header */}
       <div
         style={{
-          backgroundColor: "#FFD700",
-          color: "black",
+          backgroundColor: "#FA8072",
+          color: "white",
           textTransform: "uppercase",
           fontWeight: "bold",
           fontSize: "2rem",
@@ -122,11 +126,11 @@ export default function ShowList({ shows }) {
           border: "2px solid black",
         }}
       >
-        Now Playing on Broadway
+        Now Playing on West End
       </div>
 
       <div style={{ padding: "4rem" }}>
-        {/* Search + Controls container */}
+        {/* Controls */}
         <div
           className="search-controls"
           style={{
@@ -138,7 +142,7 @@ export default function ShowList({ shows }) {
             marginBottom: "1.5rem",
           }}
         >
-          {/* Left: Sort */}
+          {/* Sort */}
           <div style={{ flex: "0 0 auto" }}>
             <label htmlFor="sort" style={{ marginRight: 8 }}>
               Sort by:
@@ -162,7 +166,7 @@ export default function ShowList({ shows }) {
             </select>
           </div>
 
-          {/* Center: Search (stretched) */}
+          {/* Search */}
           <div
             style={{ flex: "1 1 auto", minWidth: "200px", textAlign: "center" }}
           >
@@ -182,7 +186,7 @@ export default function ShowList({ shows }) {
             />
           </div>
 
-          {/* Right: Filters + Previews */}
+          {/* Filters */}
           <div
             className="top-controls"
             style={{
@@ -205,7 +209,7 @@ export default function ShowList({ shows }) {
                     padding: "0.5rem 1rem",
                     border: "none",
                     borderRadius: "4px",
-                    backgroundColor: filter === type ? "#EADB5A" : "#444",
+                    backgroundColor: filter === type ? "#FA8072" : "#444",
                     color: filter === type ? "#000" : "#fff",
                     fontWeight: "bold",
                     cursor: "pointer",
@@ -239,7 +243,7 @@ export default function ShowList({ shows }) {
           </div>
         </div>
 
-        {/* Show list or no shows message */}
+        {/* Show grid */}
         {filteredSortedShows.length === 0 ? (
           <div
             style={{
@@ -267,10 +271,7 @@ export default function ShowList({ shows }) {
                 { title, imgSrc, type, openingdate, closingdate, link },
                 idx
               ) => (
-                <li
-                  key={`${title}-${type}-${idx}`}
-                  style={{ listStyle: "none" }}
-                >
+                <li key={`${title}-${type}-${idx}`}>
                   <div
                     style={{
                       position: "relative",
@@ -285,7 +286,7 @@ export default function ShowList({ shows }) {
                       overflow: "hidden",
                       boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                       transition: "all 0.3s ease-in-out",
-                      backgroundColor: "#EADB5A",
+                      backgroundColor: "#FA8072",
                       fontFamily:
                         '"Helvetica Neue", Helvetica, Arial, sans-serif',
                       fontSize: "1rem",
@@ -304,7 +305,7 @@ export default function ShowList({ shows }) {
                       e.currentTarget.style.boxShadow =
                         "0 2px 6px rgba(0,0,0,0.1)";
                       e.currentTarget.style.border = "1px solid black";
-                      e.currentTarget.style.backgroundColor = "#EADB5A";
+                      e.currentTarget.style.backgroundColor = "#FA8072";
                       e.currentTarget.style.color = "#000";
                     }}
                   >
@@ -329,21 +330,22 @@ export default function ShowList({ shows }) {
                       </div>
                     )}
 
-                    {imgSrc && (
-                      <img
-                        src={imgSrc}
-                        alt={title || "Broadway show poster"}
-                        style={{
-                          width: "100%",
-                          objectFit: "cover",
-                          objectPosition: "center",
-                          display: "block",
-                          transition: "transform 0.3s ease-in-out",
-                        }}
-                        loading="lazy"
-                      />
-                    )}
+                    {/* Show image */}
+                    <img
+                      src={imgSrc || DEFAULT_IMG}
+                      alt={title || "Broadway show poster"}
+                      style={{
+                        width: "100%",
+                        height: "400px",
+                        objectFit: "cover",
+                        objectPosition: "center",
+                        display: "block",
+                        transition: "transform 0.3s ease-in-out",
+                      }}
+                      loading="lazy"
+                    />
 
+                    {/* Title & type */}
                     <div
                       style={{
                         padding: "0.5rem 1rem",
@@ -358,17 +360,16 @@ export default function ShowList({ shows }) {
                       style={{
                         padding: "0 1rem 0.5rem",
                         fontSize: "0.95rem",
-                        color: "#555",
                       }}
                     >
                       <em>{type}</em>
                     </div>
 
+                    {/* Dates & link */}
                     <div
                       style={{
                         padding: "0 1rem 1rem",
                         fontSize: "0.85rem",
-                        color: "#444",
                       }}
                     >
                       <div>
@@ -377,33 +378,34 @@ export default function ShowList({ shows }) {
                       <div>
                         <strong>Closing:</strong> {formatDate(closingdate)}
                       </div>
-
                       <div style={{ marginTop: "1rem" }}>
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: "inline-block",
-                            padding: "0.5rem 1rem",
-                            backgroundColor: "transparent",
-                            color: "black",
-                            borderRadius: "4px",
-                            border: "1px solid black",
-                            textDecoration: "none",
-                            fontWeight: "bold",
-                            transition: "background-color 0.2s ease-in-out",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#EADB5A";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor =
-                              "transparent";
-                          }}
-                        >
-                          More Info
-                        </a>
+                        {link && (
+                          <a
+                            href={link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: "inline-block",
+                              padding: "0.5rem 1rem",
+                              backgroundColor: "transparent",
+                              color: "black",
+                              borderRadius: "4px",
+                              border: "1px solid black",
+                              textDecoration: "none",
+                              fontWeight: "bold",
+                              transition: "background-color 0.2s ease-in-out",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = "#FA8072";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor =
+                                "transparent";
+                            }}
+                          >
+                            More Info
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
