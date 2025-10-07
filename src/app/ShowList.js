@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 
 export default function ShowList({ shows }) {
   const [filter, setFilter] = useState("All");
@@ -107,178 +108,176 @@ export default function ShowList({ shows }) {
         Now Playing on West End
       </div>
 
-      {/* Controls */}
-      <div style={{ padding: "4rem" }}>
-        {/* ... all controls as in your previous component ... */}
+      {/* Controls placeholder */}
+      {/* Add your filter/search/sort inputs here */}
 
-        {/* Show grid */}
-        {filteredSortedShows.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              color: "white",
-              fontSize: "1.5rem",
-              marginTop: "4rem",
-              fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-            }}
-          >
-            No shows found
-          </div>
-        ) : (
-          <ul
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-              gap: "1rem",
-              padding: 0,
-              listStyle: "none",
-            }}
-          >
-            {filteredSortedShows.map(
-              (
-                { title, imgSrc, type, openingdate, closingdate, link },
-                idx
-              ) => (
-                <li key={`${title}-${type}-${idx}`}>
+      {/* Show grid */}
+      {filteredSortedShows.length === 0 ? (
+        <div
+          style={{
+            textAlign: "center",
+            color: "white",
+            fontSize: "1.5rem",
+            marginTop: "4rem",
+            fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+          }}
+        >
+          No shows found
+        </div>
+      ) : (
+        <ul
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+            gap: "1rem",
+            padding: 0,
+            listStyle: "none",
+          }}
+        >
+          {filteredSortedShows.map(
+            (
+              { title, imgSrc, type, openingdate, closingdate, link },
+              idx
+            ) => (
+              <li key={`${title}-${type}-${idx}`}>
+                <div
+                  style={{
+                    height: "600px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    cursor: "pointer",
+                    border: "1px solid black",
+                    borderRadius: 6,
+                    overflow: "hidden",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                    transition: "all 0.3s ease-in-out",
+                    backgroundColor: "#FA8072",
+                    fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                    fontSize: "1rem",
+                    color: "#000",
+                    position: "relative",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "white";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#FA8072";
+                  }}
+                >
+                  {now && isInPreviews(openingdate) && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "0.5rem",
+                        left: "0.5rem",
+                        backgroundColor: "#d9534f",
+                        color: "white",
+                        fontWeight: "bold",
+                        padding: "0.25rem 0.5rem",
+                        borderRadius: "4px",
+                        fontSize: "0.75rem",
+                        zIndex: 10,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Currently in Previews
+                    </div>
+                  )}
+
+                  <Image
+                    src={imgSrc || DEFAULT_IMG}
+                    alt={title || "Show poster"}
+                    width={400}
+                    height={400}
+                    style={{
+                      width: "100%",
+                      height: "400px",
+                      objectFit: "cover",
+                      objectPosition: "center",
+                      display: "block",
+                      transition: "transform 0.3s ease-in-out",
+                    }}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_IMG;
+                    }}
+                  />
+
                   <div
                     style={{
-                      height: "600px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                      cursor: "pointer",
-                      border: "1px solid black",
-                      borderRadius: 6,
+                      padding: "0.5rem 1rem",
+                      fontWeight: "600",
+                      fontSize: "1.1rem",
                       overflow: "hidden",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-                      transition: "all 0.3s ease-in-out",
-                      backgroundColor: "#FA8072", // default color
-                      fontFamily:
-                        '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                      fontSize: "1rem",
-                      color: "#000",
-                      position: "relative",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "white"; // card hover
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "#FA8072"; // revert
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {now && isInPreviews(openingdate) && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: "0.5rem",
-                          left: "0.5rem",
-                          backgroundColor: "#d9534f",
-                          color: "white",
-                          fontWeight: "bold",
-                          padding: "0.25rem 0.5rem",
-                          borderRadius: "4px",
-                          fontSize: "0.75rem",
-                          zIndex: 10,
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Currently in Previews
+                    {title}
+                  </div>
+
+                  <div
+                    style={{
+                      padding: "0 1rem",
+                      fontSize: "0.95rem",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <em>{type}</em>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: "0 1rem 1rem",
+                      fontSize: "0.85rem",
+                      overflow: "hidden",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div>
+                      <strong>Opening Date:</strong> {formatDate(openingdate)}
+                    </div>
+                    <div>
+                      <strong>Closing:</strong> {formatDate(closingdate)}
+                    </div>
+                    {link && (
+                      <div style={{ marginTop: "0.5rem" }}>
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: "inline-block",
+                            padding: "0.25rem 0.5rem",
+                            backgroundColor: "transparent",
+                            color: "black",
+                            borderRadius: "4px",
+                            border: "1px solid black",
+                            textDecoration: "none",
+                            fontWeight: "bold",
+                            transition: "background-color 0.2s ease-in-out",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#FA8072";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "transparent";
+                          }}
+                        >
+                          More Info
+                        </a>
                       </div>
                     )}
-
-                    <img
-                      src={imgSrc || DEFAULT_IMG}
-                      alt={title || "Show poster"}
-                      style={{
-                        width: "100%",
-                        height: "400px",
-                        objectFit: "cover",
-                        objectPosition: "center",
-                        display: "block",
-                        transition: "transform 0.3s ease-in-out",
-                      }}
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.src = DEFAULT_IMG;
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        padding: "0.5rem 1rem",
-                        fontWeight: "600",
-                        fontSize: "1.1rem",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {title}
-                    </div>
-
-                    <div
-                      style={{
-                        padding: "0 1rem",
-                        fontSize: "0.95rem",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <em>{type}</em>
-                    </div>
-
-                    <div
-                      style={{
-                        padding: "0 1rem 1rem",
-                        fontSize: "0.85rem",
-                        overflow: "hidden",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <div>
-                        <strong>Opening Date:</strong> {formatDate(openingdate)}
-                      </div>
-                      <div>
-                        <strong>Closing:</strong> {formatDate(closingdate)}
-                      </div>
-                      {link && (
-                        <div style={{ marginTop: "0.5rem" }}>
-                          <a
-                            href={link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              display: "inline-block",
-                              padding: "0.25rem 0.5rem",
-                              backgroundColor: "transparent",
-                              color: "black",
-                              borderRadius: "4px",
-                              border: "1px solid black",
-                              textDecoration: "none",
-                              fontWeight: "bold",
-                              transition: "background-color 0.2s ease-in-out",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "#FA8072";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor =
-                                "transparent";
-                            }}
-                          >
-                            More Info
-                          </a>
-                        </div>
-                      )}
-                    </div>
                   </div>
-                </li>
-              )
-            )}
-          </ul>
-        )}
-      </div>
+                </div>
+              </li>
+            )
+          )}
+        </ul>
+      )}
     </main>
   );
 }
