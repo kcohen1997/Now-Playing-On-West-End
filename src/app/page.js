@@ -211,7 +211,7 @@ export default async function Page() {
   const stringSimilarity = (await import("string-similarity")).default;
   const { puppetShows, wikiShows } = await getCachedShows();
 
-  const DEFAULT_IMG = "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
+  // const DEFAULT_IMG = "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
 
   const enrichedShows = wikiShows.map((wikiShow) => {
     const normWikiTitle = normalizeTitle(wikiShow.title);
@@ -238,7 +238,7 @@ export default async function Page() {
     return {
       ...wikiShow,
       link: matchedPuppet?.link || null,
-      imgSrc: matchedPuppet?.imgSrc || DEFAULT_IMG,
+      imgSrc: matchedPuppet?.imgSrc,
     };
   });
 

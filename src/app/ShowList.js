@@ -9,8 +9,7 @@ export default function ShowList({ shows }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [now, setNow] = useState(null);
 
-  const DEFAULT_IMG =
-    "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
+  // const DEFAULT_IMG = "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
 
   useEffect(() => setNow(new Date()), []);
 
@@ -268,7 +267,7 @@ export default function ShowList({ shows }) {
                   )}
 
                   <img
-                    src={imgSrc || DEFAULT_IMG}
+                    src={imgSrc}
                     alt={title || "Show poster"}
                     style={{
                       width: "100%",
