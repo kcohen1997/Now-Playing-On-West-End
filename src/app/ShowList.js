@@ -78,7 +78,7 @@ export default function ShowList({ shows }) {
 
         if (
           searchTerm &&
-          show.title.toLowerCase() !== searchTerm.toLowerCase().trim()
+          !show.title.toLowerCase().includes(searchTerm.toLowerCase().trim())
         )
           return false;
 
@@ -405,31 +405,6 @@ export default function ShowList({ shows }) {
                 >
                   Closing: {formatDate(show.closingdate)}
                 </p>
-
-                {show.link && (
-                  <a
-                    href={show.link} // use the scraped londontheatre.co.uk link
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      marginTop: "auto",
-                      display: "inline-block",
-                      textAlign: "center",
-                      background: colors.accent,
-                      color: theme === "dark" ? "#000" : "#fff",
-                      textDecoration: "none",
-                      fontWeight: "600",
-                      padding: "0.75rem",
-                      borderRadius: "8px",
-                      marginInline: "auto",
-                      width: isMobile ? "100%" : "80%",
-                      minHeight: "44px",
-                      touchAction: "manipulation",
-                    }}
-                  >
-                    Get Tickets
-                  </a>
-                )}
               </div>
             </li>
           ))
