@@ -1,4 +1,4 @@
-# Current Broadway Show List
+# Now Playing on West End
 
 This project aggregates Broadway show data from multiple sources and presents it in one easy-to-read website. Updated every week, this website displays important information such as a show's closing date and whether the show is considered a play or musical.
 
