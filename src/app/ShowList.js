@@ -14,43 +14,71 @@ export default function ShowList({ shows }) {
   const [theme, setTheme] = useState("light");
   const [now, setNow] = useState(new Date());
 
-  // Detect system theme + screen size
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    setTheme(media.matches ? "dark" : "light");
+    const handleThemeChange = (e) => setTheme(e.matches ? "dark" : "light");
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
 
-    const handleResize = () => setIsMobile(window.innerWidth < 600);
+    setTheme(media.matches ? "dark" : "light");
     handleResize();
 
-    media.addEventListener("change", (e) =>
-      setTheme(e.matches ? "dark" : "light")
-    );
+    media.addEventListener("change", handleThemeChange);
     window.addEventListener("resize", handleResize);
 
     return () => {
-      media.removeEventListener("change", () => {});
+      media.removeEventListener("change", handleThemeChange);
       window.removeEventListener("resize", handleResize);
     };
   }, []);
 
-  // --- Date helpers ---
-  const toDate = (date) => {
-    if (!date || date === "N/A" || date === "Open-ended") return null;
-    const cleanDate = date.trim().slice(0, 10);
-    const d = new Date(cleanDate);
-    return isNaN(d.getTime()) ? null : d;
+  // ----------------- Date Parsing -----------------
+  const parseDate = (dateStr) => {
+    if (!dateStr || dateStr === "N/A" || dateStr === "Open-ended") return null;
+
+    dateStr = dateStr.trim();
+
+    // YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      if (d < 1 || d > 31)
+        return new Date(`${y}-${m.toString().padStart(2, "0")}-01`);
+      return new Date(
+        `${y}-${m.toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`
+      );
+    }
+
+    // Month YYYY format
+    const mYMatch = dateStr.match(/([A-Za-z]+)\s+(\d{4})/);
+    if (mYMatch) {
+      const monthNames = {
+        January: 0,
+        February: 1,
+        March: 2,
+        April: 3,
+        May: 4,
+        June: 5,
+        July: 6,
+        August: 7,
+        September: 8,
+        October: 9,
+        November: 10,
+        December: 11,
+      };
+      const month = monthNames[mYMatch[1]] ?? 0;
+      const year = parseInt(mYMatch[2]);
+      return new Date(year, month, 1);
+    }
+
+    // Year only
+    const yearMatch = dateStr.match(/\d{4}/);
+    if (yearMatch) return new Date(parseInt(yearMatch[0]), 0, 1);
+
+    return null;
   };
 
-  const isInPreviews = (date) => {
-    const d = toDate(date);
-    return d && d > now;
-  };
-
-  const formatDate = (date) => {
-    if (!date || date === "N/A") return "N/A";
-    if (date === "Open-ended") return "Open-ended";
-    const d = toDate(date);
-    if (!d) return "N/A";
+  const formatDate = (dateStr) => {
+    const d = parseDate(dateStr);
+    if (!d) return dateStr || "N/A";
     return d.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -58,7 +86,12 @@ export default function ShowList({ shows }) {
     });
   };
 
-  // --- Filter + sort + search ---
+  const isInPreviews = (dateStr) => {
+    const d = parseDate(dateStr);
+    return d && d > now;
+  };
+
+  // ----------------- Filtering & Sorting -----------------
   const filteredShows = useMemo(() => {
     return shows
       .filter((show) => {
@@ -78,122 +111,68 @@ export default function ShowList({ shows }) {
 
         if (
           searchTerm &&
-          !show.title.toLowerCase().includes(searchTerm.toLowerCase().trim())
+          !show.title
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .includes(searchTerm.toLowerCase().trim())
         )
           return false;
 
         return true;
       })
       .sort((a, b) => {
-        const dateA = toDate(a.openingdate);
-        const dateB = toDate(b.openingdate);
+        const dateA = parseDate(a.openingdate) || 8640000000000000;
+        const dateB = parseDate(b.openingdate) || 8640000000000000;
         switch (sort) {
           case "a-z":
             return a.title.localeCompare(b.title);
           case "z-a":
             return b.title.localeCompare(a.title);
           case "opening-earliest":
-            return (dateA || 0) - (dateB || 0);
+            return dateA - dateB;
           case "opening-latest":
-            return (dateB || 0) - (dateA || 0);
+            return dateB - dateA;
           default:
             return 0;
         }
       });
   }, [shows, filter, sort, showPreviewsOnly, searchTerm, now]);
 
-  // --- Theme palette ---
-  const colors =
-    theme === "dark"
-      ? {
-          background: "linear-gradient(to bottom, #0f0f0f, #1e1e1e)",
-          text: "#f0f0f0",
-          card: "rgba(255,255,255,0.08)",
-          accent: "#FA8072",
-          subtext: "#ccc",
-        }
-      : {
-          background: "linear-gradient(to bottom, #fffaf0, #ffe4e1)",
-          text: "#222",
-          card: "rgba(255,255,255,0.85)",
-          accent: "#e74c3c",
-          subtext: "#555",
-        };
+  const darkMode = theme === "dark";
 
+  // ----------------- Render -----------------
   return (
     <div
-      style={{
-        fontFamily: "system-ui, sans-serif",
-        background: colors.background,
-        color: colors.text,
-        minHeight: "100vh",
-        transition: "background 0.3s ease, color 0.3s ease",
-      }}
+      className={`flex flex-col min-h-screen ${
+        darkMode
+          ? "bg-gray-900 text-gray-100"
+          : "bg-gradient-to-b from-pink-50 to-pink-100 text-gray-900"
+      } font-sans`}
     >
       {/* Header */}
-      <header
-        style={{
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: isMobile ? "1rem" : "1.5rem 3rem",
-          textAlign: isMobile ? "center" : "left",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: isMobile ? "1.75rem" : "2.25rem",
-            margin: 0,
-          }}
-        >
+      <header className="flex flex-col items-center p-4 md:flex-row md:justify-between md:px-12">
+        <h1 className="text-2xl md:text-4xl font-bold text-center md:text-left">
           Now Playing in London’s West End
         </h1>
         <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          style={{
-            marginTop: isMobile ? "1rem" : 0,
-            background: colors.accent,
-            border: "none",
-            borderRadius: "8px",
-            color: theme === "dark" ? "#000" : "#fff",
-            padding: "0.6rem 1rem",
-            cursor: "pointer",
-            fontWeight: 600,
-            transition: "all 0.2s ease",
-            width: isMobile ? "100%" : "auto",
-          }}
+          onClick={() => setTheme(darkMode ? "light" : "dark")}
+          aria-label="Toggle dark/light mode"
+          className={`mt-4 md:mt-0 px-4 py-2 rounded-lg font-semibold cursor-pointer transition-transform duration-200 ${
+            darkMode
+              ? "bg-pink-300 text-black hover:scale-105"
+              : "bg-red-600 text-white hover:scale-105"
+          }`}
         >
-          {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+          {darkMode ? "Light Mode" : "Dark Mode"}
         </button>
       </header>
 
       {/* Controls */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          alignItems: isMobile ? "stretch" : "center",
-          justifyContent: "center",
-          gap: isMobile ? "0.75rem" : "1rem",
-          flexWrap: "wrap",
-          margin: "0 auto",
-          maxWidth: "800px",
-          padding: isMobile ? "0 1rem" : "0 2rem",
-        }}
-      >
+      <div className="sticky top-0 z-20 bg-white dark:bg-gray-900 px-4 md:px-8 py-3 md:py-4 border-b border-gray-300 dark:border-gray-700 flex flex-col sm:flex-col md:flex-row flex-wrap gap-2 sm:gap-2 md:gap-3 items-center">
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          style={{
-            padding: "0.75rem",
-            fontSize: "1rem",
-            borderRadius: "8px",
-            border: "1px solid #aaa",
-            width: isMobile ? "100%" : "200px",
-            background: colors.card,
-            color: colors.text,
-          }}
+          className="w-full md:w-36 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="All">All Shows</option>
           <option value="Musical">Musicals</option>
@@ -204,214 +183,81 @@ export default function ShowList({ shows }) {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          style={{
-            padding: "0.75rem",
-            fontSize: "1rem",
-            borderRadius: "8px",
-            border: "1px solid #aaa",
-            width: isMobile ? "100%" : "200px",
-            background: colors.card,
-            color: colors.text,
-          }}
+          className="w-full md:w-36 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="a-z">Sort A–Z</option>
           <option value="z-a">Sort Z–A</option>
-          <option value="opening-earliest">Opening Earliest</option>
-          <option value="opening-latest">Opening Latest</option>
+          <option value="opening-earliest">Earliest</option>
+          <option value="opening-latest">Latest</option>
         </select>
 
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            color: colors.text,
-            fontSize: "1rem",
-          }}
-        >
+        <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={showPreviewsOnly}
             onChange={(e) => setShowPreviewsOnly(e.target.checked)}
+            className="w-4 h-4"
           />
           Previews only
         </label>
 
-        {/* Search */}
-        <div
-          style={{
-            position: "relative",
-            width: isMobile ? "100%" : "450px",
-            flexShrink: 0,
-          }}
-        >
-          <input
-            type="text"
-            placeholder="Search by title..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "0.75rem 2.5rem 0.75rem 1rem",
-              fontSize: "1rem",
-              borderRadius: "999px",
-              border: "1px solid #aaa",
-              background: colors.card,
-              color: colors.text,
-              transition: "all 0.2s ease",
-            }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = colors.accent)}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "#aaa")}
-          />
-          <span
-            style={{
-              position: "absolute",
-              right: "0.75rem",
-              top: "50%",
-              transform: "translateY(-50%)",
-              color: colors.subtext,
-              fontSize: "1.1rem",
-              pointerEvents: "none",
-            }}
-          >
-            🔍
-          </span>
-        </div>
+        <input
+          type="text"
+          placeholder="Search by title..."
+          aria-label="Search shows by title"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full md:w-96 px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+        />
       </div>
 
       {/* Show Grid */}
-      <ul
-        style={{
-          listStyle: "none",
-          padding: isMobile ? "1rem 0.5rem" : "2rem",
-          margin: 0,
-          display: "grid",
-          gridTemplateColumns: isMobile
-            ? "1fr"
-            : "repeat(auto-fill, minmax(220px, 1fr))",
-          gap: isMobile ? "1.25rem" : "2rem",
-          justifyItems: "center",
-        }}
-      >
+      <ul className="grid gap-4 px-4 md:px-12 mb-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center mt-6">
         {filteredShows.length > 0 ? (
           filteredShows.map((show, index) => (
-            <li
-              key={index}
-              style={{
-                background: colors.card,
-                borderRadius: "12px",
-                overflow: "hidden",
-                boxShadow:
-                  theme === "dark"
-                    ? "0 4px 12px rgba(255,255,255,0.1)"
-                    : "0 4px 12px rgba(0,0,0,0.2)",
-                width: "100%",
-                maxWidth: "360px",
-                display: "flex",
-                flexDirection: "column",
-                transition: "transform 0.3s ease, box-shadow 0.3s ease",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.transform = "scale(1.02)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.transform = "scale(1)")
-              }
-            >
-              {/* Image container for fixed aspect ratio */}
-              <div
-                style={{
-                  width: "100%",
-                  height: isMobile ? "280px" : "220px",
-                  overflow: "hidden",
-                }}
+            <li key={index} className="w-full max-w-[280px] flex flex-col">
+              <a
+                href={show.link || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col h-full rounded-lg overflow-hidden shadow-lg transform transition hover:scale-105"
               >
-                <img
-                  src={show.imgSrc || DEFAULT_IMG}
-                  alt={show.title}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    transition: "transform 0.3s ease",
-                  }}
-                  onError={(e) => (e.currentTarget.src = DEFAULT_IMG)}
-                />
-              </div>
-
-              <div
-                style={{
-                  padding: "1rem",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.5rem",
-                  flexGrow: 1,
-                }}
-              >
-                <h2
-                  style={{
-                    fontSize: isMobile ? "1.1rem" : "1.3rem",
-                    margin: 0,
-                    lineHeight: 1.3,
-                    textAlign: "center",
-                  }}
-                >
-                  {show.title}
-                </h2>
-
-                {show.type && (
-                  <p
-                    style={{
-                      fontSize: "0.9rem",
-                      textAlign: "center",
-                      color: colors.subtext,
-                      margin: 0,
-                    }}
-                  >
-                    <em>{show.type}</em>
+                <div className="h-72 w-full overflow-hidden sm:h-80 md:h-72">
+                  <img
+                    src={show.imgSrc || DEFAULT_IMG}
+                    alt={show.title}
+                    className="w-full h-full object-cover transition-transform"
+                    onError={(e) => (e.currentTarget.src = DEFAULT_IMG)}
+                  />
+                </div>
+                <div className="p-4 flex flex-col gap-1 bg-white/80 dark:bg-gray-800/90 h-40 justify-between">
+                  <h2 className="text-center font-semibold text-lg">
+                    {show.title}
+                  </h2>
+                  {show.type && (
+                    <p className="text-center text-sm italic text-gray-500 dark:text-gray-400">
+                      {show.type}
+                    </p>
+                  )}
+                  {show.venue && (
+                    <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                      📍 {show.venue}
+                    </p>
+                  )}
+                  <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                    Opening: {formatDate(show.openingdate)}
                   </p>
-                )}
-
-                {show.venue && (
-                  <p
-                    style={{
-                      fontSize: "0.85rem",
-                      textAlign: "center",
-                      color: colors.subtext,
-                      margin: 0,
-                    }}
-                  >
-                    📍 {show.venue}
+                  <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                    Closing: {formatDate(show.closingdate)}
                   </p>
-                )}
-
-                <p
-                  style={{
-                    fontSize: "0.85rem",
-                    textAlign: "center",
-                    color: colors.subtext,
-                    margin: 0,
-                  }}
-                >
-                  Opening: {formatDate(show.openingdate)}
-                </p>
-                <p
-                  style={{
-                    fontSize: "0.85rem",
-                    textAlign: "center",
-                    color: colors.subtext,
-                    margin: 0,
-                  }}
-                >
-                  Closing: {formatDate(show.closingdate)}
-                </p>
-              </div>
+                </div>
+              </a>
             </li>
           ))
         ) : (
-          <p style={{ textAlign: "center", fontSize: "1.2rem" }}>
+          <li className="col-span-full text-center text-lg text-gray-500 dark:text-gray-400">
             No shows found
-          </p>
+          </li>
         )}
       </ul>
     </div>

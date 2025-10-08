@@ -11,7 +11,7 @@ const BASE_URL = "https://www.londontheatre.co.uk";
 const DEFAULT_IMG =
   "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
 
-// --- Helpers ---
+// ---------- Helpers ----------
 function normalizeTitle(title) {
   return title
     .toLowerCase()
@@ -24,10 +24,10 @@ function normalizeUrl(url) {
   if (!url) return null;
   url = url.trim().replace(/&amp;/g, "&");
   if (url.startsWith("//")) url = "https:" + url;
-  if (url.startsWith("/")) url = "https://www.londontheatre.co.uk" + url;
+  if (url.startsWith("/")) url = BASE_URL + url;
   if (url.startsWith("http://")) url = url.replace("http://", "https://");
   if (!url.startsWith("https://"))
-    url = "https://www.londontheatre.co.uk/" + url.replace(/^(\.\.\/)+/, "");
+    url = BASE_URL + "/" + url.replace(/^(\.\.\/)+/, "");
   return url;
 }
 
@@ -52,16 +52,15 @@ async function getWestEndShowsStatic() {
     $("div[data-test-id^='poster-']").each((_, el) => {
       const posterDiv = $(el);
 
-      // Show title
       const title =
         posterDiv.attr("data-test-id")?.replace("poster-", "") ||
         "Unknown Show";
 
-      // Ticket URL
       const aTag = posterDiv.find("a").first();
-      const url = aTag.attr("href") ? BASE_URL + aTag.attr("href") : null;
+      const url = aTag.attr("href")
+        ? normalizeUrl(BASE_URL + aTag.attr("href"))
+        : null;
 
-      // Poster image: desktop first, fallback to first source, else default
       let imgSrc =
         posterDiv
           .find('source[media="(min-width: 768px)"]')
@@ -70,9 +69,7 @@ async function getWestEndShowsStatic() {
         posterDiv.find("source").first().attr("srcset") ||
         DEFAULT_IMG;
 
-      if (imgSrc.includes(",")) {
-        imgSrc = imgSrc.split(",")[0].trim();
-      }
+      if (imgSrc.includes(",")) imgSrc = imgSrc.split(",")[0].trim();
 
       shows.push({
         title,
@@ -87,7 +84,7 @@ async function getWestEndShowsStatic() {
 
     return shows;
   } catch (err) {
-    console.error("Error fetching West End shows:", err.message);
+    console.error("❌ Error fetching West End shows:", err.message);
     return [];
   }
 }
@@ -122,13 +119,11 @@ async function getWestEndShowInfoFromWikipedia() {
         .replace(/(\s)?\[\d+\]/g, "")
         .trim();
 
-      // Wikipedia link from current production
       const linkElement = $(cells[4]).find("a").first();
       const wikiLink = linkElement?.attr("href")
-        ? "https://en.wikipedia.org" + linkElement.attr("href")
+        ? normalizeUrl("https://en.wikipedia.org" + linkElement.attr("href"))
         : null;
 
-      // Table cell image (fallback before infobox)
       const imgElement = $(cells[4]).find("img").first();
       let wikiImg = imgElement?.attr("src") || null;
       if (wikiImg && wikiImg.startsWith("//")) wikiImg = "https:" + wikiImg;
@@ -150,7 +145,7 @@ async function getWestEndShowInfoFromWikipedia() {
   }
 }
 
-// ---------- Get Infobox Image ----------
+// ---------- Wikipedia Infobox Image ----------
 async function getWikiInfoboxImage(wikiLink) {
   if (!wikiLink) return null;
   try {
@@ -186,55 +181,68 @@ async function getCachedShows() {
   return data;
 }
 
+// ---------- Enrich Wikipedia Show ----------
+async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
+  const normWikiTitle = normalizeTitle(wikiShow.title);
+
+  // Exact match first
+  let matched = htmlShows.find(
+    (s) => normalizeTitle(s.title) === normWikiTitle
+  );
+
+  // Fallback: best similarity match
+  if (!matched) {
+    let bestMatch = null;
+    let bestScore = 0;
+    for (const s of htmlShows) {
+      const score = stringSimilarity.compareTwoStrings(
+        normalizeTitle(s.title),
+        normWikiTitle
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = s;
+      }
+    }
+    if (bestScore > 0.7) matched = bestMatch;
+  }
+
+  // Image logic: HTML > Wikipedia table cell > Wikipedia infobox > default
+  let imgSrc = matched?.imgSrc || wikiShow.wikiImg || null;
+  if (!imgSrc && wikiShow.wikiLink) {
+    imgSrc = await getWikiInfoboxImage(wikiShow.wikiLink);
+  }
+  imgSrc = await validateImage(imgSrc);
+  if (!imgSrc) imgSrc = DEFAULT_IMG;
+
+  // Link logic: HTML show link > Wikipedia page
+  const link =
+    normalizeUrl(matched?.url) || normalizeUrl(wikiShow.wikiLink) || "#";
+
+  return {
+    ...wikiShow,
+    link,
+    imgSrc,
+  };
+}
+
 // ---------- Main Page Component ----------
 export default async function Page() {
   const stringSimilarity = (await import("string-similarity")).default;
+  const pLimit = (await import("p-limit")).default;
+  const limit = pLimit(5); // max 5 concurrent fetches
+
   const { htmlShows, wikiShows } = await getCachedShows();
 
-  const enrichedShows = await Promise.all(
-    wikiShows.map(async (wikiShow) => {
-      const normWikiTitle = normalizeTitle(wikiShow.title);
-
-      // HTML exact match
-      let matched = htmlShows.find(
-        (s) => normalizeTitle(s.title) === normWikiTitle
-      );
-
-      // Fallback: best similarity match
-      if (!matched) {
-        let bestMatch = null;
-        let bestScore = 0;
-        for (const s of htmlShows) {
-          const score = stringSimilarity.compareTwoStrings(
-            normalizeTitle(s.title),
-            normWikiTitle
-          );
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = s;
-          }
-        }
-        if (bestScore > 0.7) matched = bestMatch;
-      }
-
-      // Image logic: HTML > Wikipedia table cell > Wikipedia infobox > default
-      let imgSrc = matched?.imgSrc || wikiShow.wikiImg || null;
-      if (!imgSrc && wikiShow.wikiLink) {
-        imgSrc = await getWikiInfoboxImage(wikiShow.wikiLink);
-      }
-      imgSrc = await validateImage(imgSrc);
-      if (!imgSrc) imgSrc = DEFAULT_IMG;
-
-      // Link logic: Wikipedia page > HTML show link
-      const link = matched?.url || wikiShow.wikiLink || "#";
-
-      return {
-        ...wikiShow,
-        link,
-        imgSrc,
-      };
-    })
+  const enrichedShowsResults = await Promise.allSettled(
+    wikiShows.map((wikiShow) =>
+      limit(() => enrichShow(wikiShow, htmlShows, stringSimilarity))
+    )
   );
+
+  const enrichedShows = enrichedShowsResults
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => r.value);
 
   if (enrichedShows.length === 0) {
     return (
