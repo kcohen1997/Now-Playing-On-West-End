@@ -204,7 +204,7 @@ async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
         bestMatch = s;
       }
     }
-    if (bestScore > 0.7) matched = bestMatch;
+    if (bestScore > 0.9) matched = bestMatch;
   }
 
   // Image logic: HTML > Wikipedia table cell > Wikipedia infobox > default

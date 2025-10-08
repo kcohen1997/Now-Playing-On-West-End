@@ -222,7 +222,7 @@ export default function ShowList({ shows }) {
                 >
                   {/* Diagonal Ribbon */}
                   {inPreviews && (
-                    <div className="absolute top-2 right-[-35px] w-28 text-center bg-yellow-400 text-black font-bold text-xs py-1 transform rotate-45 shadow-md z-10 pointer-events-none">
+                    <div className="absolute top-3 right-[-35px] w-28 text-center bg-yellow-400 text-black font-bold text-xs py-1 transform rotate-45 shadow-md z-10 pointer-events-none">
                       Previews
                     </div>
                   )}
