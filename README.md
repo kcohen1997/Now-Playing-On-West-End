@@ -1,8 +1,8 @@
-# Current Broadway Show List
+# Now Playing on West End
 
 This project aggregates Broadway show data from multiple sources and presents it in one easy-to-read website. Updated every week, this website displays important information such as a show's closing date and whether the show is considered a play or musical.
 
-**Live Demo:** <a href="https://current-broadway-show-list.vercel.app/" target="_blank">Click Here </a>  
+**Live Demo:** <a href="https://now-playing-on-west-end.vercel.app/" target="_blank">Click Here </a>  
 
 This application is hosted online on <a href="https://vercel.com" target="_blank">Vercel</a>. Data displayed on this website is updated every Monday at 12:00 AM. 
 
@@ -12,8 +12,8 @@ This application is hosted online on <a href="https://vercel.com" target="_blank
 
 The following public sources are used for this project:
 
-- <a href="https://playbill.com/shows/broadway" target="_blank">Playbill: A Trusted Theatre Resource Since 1884 </a>: Displays up-to-date Broadway show list and Playbill Photos
-- <a href="https://en.wikipedia.org/wiki/Broadway_theatre" target="_blank">Wikipedia – Broadway Theatre</a>: Displays up-to-date Broadway opening and closing dates
+- <a href="https://www.londontheatre.co.uk/whats-on" target="_blank">www.londontheatre.co.uk </a>: Displays up-to-date West End show list and photos
+- <a href="https://en.wikipedia.org/wiki/Broadway_theatre" target="_blank">Wikipedia – Broadway Theatre</a>: Displays up-to-date West End opening and closing dates (photos from Wikipedia are used as backup if previous link does not have it)
 
 ---
 
