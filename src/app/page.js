@@ -7,12 +7,17 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const cache = new NodeCache({ stdTTL: 60 * 60 });
+const BASE_URL = "https://www.londontheatre.co.uk";
 const DEFAULT_IMG =
   "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
 
 // --- Helpers ---
 function normalizeTitle(title) {
-  return title.toLowerCase().replace(/[^a-z0-9\s]/gi, "").replace(/\s+/g, " ").trim();
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeUrl(url) {
@@ -39,39 +44,50 @@ async function validateImage(url) {
 // ---------- Static HTML Scraper ----------
 async function getWestEndShowsStatic() {
   try {
-    const { data } = await axios.get("https://www.londontheatre.co.uk/whats-on", {
-      headers: { "User-Agent": "Mozilla/5.0", "Accept-Language": "en-US,en;q=0.9" },
-    });
-
+    const { data } = await axios.get(`${BASE_URL}/whats-on`);
     const $ = cheerio.load(data);
+
     const shows = [];
-    const items = $("#product-list-grid-3 .MuiGrid-item");
 
-    for (let i = 0; i < items.length; i++) {
-      const el = items[i];
-      const anchor = $(el).find("a").first();
-      const link = anchor.attr("href") ? normalizeUrl(anchor.attr("href")) : null;
+    $("div[data-test-id^='poster-']").each((_, el) => {
+      const posterDiv = $(el);
 
-      const titleAttr = $(el).find("[data-test-id]").attr("data-test-id");
-      const title = titleAttr ? titleAttr.replace("poster-", "").trim() : $(el).find("img").attr("alt") || null;
+      // Show title
+      const title =
+        posterDiv.attr("data-test-id")?.replace("poster-", "") ||
+        "Unknown Show";
 
+      // Ticket URL
+      const aTag = posterDiv.find("a").first();
+      const url = aTag.attr("href") ? BASE_URL + aTag.attr("href") : null;
+
+      // Poster image: desktop first, fallback to first source, else default
       let imgSrc =
-        $(el).find("img").attr("src") ||
-        $(el).find("img").attr("data-src") ||
-        $(el).find("source").last().attr("srcset") ||
-        null;
+        posterDiv
+          .find('source[media="(min-width: 768px)"]')
+          .first()
+          .attr("srcset") ||
+        posterDiv.find("source").first().attr("srcset") ||
+        DEFAULT_IMG;
 
-      imgSrc = normalizeUrl(imgSrc);
-      if (imgSrc) imgSrc = await validateImage(imgSrc);
-
-      if (title && link) {
-        shows.push({ title, link, imgSrc: imgSrc || null });
+      if (imgSrc.includes(",")) {
+        imgSrc = imgSrc.split(",")[0].trim();
       }
-    }
+
+      shows.push({
+        title,
+        url,
+        imgSrc,
+        type: null,
+        venue: null,
+        openingdate: null,
+        closingdate: null,
+      });
+    });
 
     return shows;
   } catch (err) {
-    console.error("❌ Failed to fetch West End shows:", err.message);
+    console.error("Error fetching West End shows:", err.message);
     return [];
   }
 }
@@ -79,9 +95,15 @@ async function getWestEndShowsStatic() {
 // ---------- Wikipedia Scraper ----------
 async function getWestEndShowInfoFromWikipedia() {
   try {
-    const res = await axios.get("https://en.wikipedia.org/wiki/West_End_theatre", {
-      headers: { "User-Agent": "Mozilla/5.0", "Accept-Language": "en-US,en;q=0.9" },
-    });
+    const res = await axios.get(
+      "https://en.wikipedia.org/wiki/West_End_theatre",
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+      }
+    );
 
     const $ = cheerio.load(res.data);
     const shows = [];
@@ -96,11 +118,13 @@ async function getWestEndShowInfoFromWikipedia() {
         $(cells[4]).text().trim() || $(cells[3]).text().trim();
       if (!currentProductionRaw || currentProductionRaw === "•") return;
 
-      const currentProduction = currentProductionRaw.replace(/(\s)?\[\d+\]/g, "").trim();
+      const currentProduction = currentProductionRaw
+        .replace(/(\s)?\[\d+\]/g, "")
+        .trim();
 
       // Wikipedia link from current production
-      const linkElement = $(cells[4]).find("a").first(); 
-      const wikiLink = linkElement?.attr("href") 
+      const linkElement = $(cells[4]).find("a").first();
+      const wikiLink = linkElement?.attr("href")
         ? "https://en.wikipedia.org" + linkElement.attr("href")
         : null;
 
@@ -172,14 +196,19 @@ export default async function Page() {
       const normWikiTitle = normalizeTitle(wikiShow.title);
 
       // HTML exact match
-      let matched = htmlShows.find((s) => normalizeTitle(s.title) === normWikiTitle);
+      let matched = htmlShows.find(
+        (s) => normalizeTitle(s.title) === normWikiTitle
+      );
 
       // Fallback: best similarity match
       if (!matched) {
         let bestMatch = null;
         let bestScore = 0;
         for (const s of htmlShows) {
-          const score = stringSimilarity.compareTwoStrings(normalizeTitle(s.title), normWikiTitle);
+          const score = stringSimilarity.compareTwoStrings(
+            normalizeTitle(s.title),
+            normWikiTitle
+          );
           if (score > bestScore) {
             bestScore = score;
             bestMatch = s;
@@ -197,7 +226,7 @@ export default async function Page() {
       if (!imgSrc) imgSrc = DEFAULT_IMG;
 
       // Link logic: Wikipedia page > HTML show link
-      const link = wikiShow.wikiLink || matched?.link || "#";
+      const link = matched?.url || wikiShow.wikiLink || "#";
 
       return {
         ...wikiShow,

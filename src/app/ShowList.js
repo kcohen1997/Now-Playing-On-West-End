@@ -2,25 +2,46 @@
 
 import { useState, useEffect, useMemo } from "react";
 
+const DEFAULT_IMG =
+  "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
+
 export default function ShowList({ shows }) {
   const [filter, setFilter] = useState("All");
   const [sort, setSort] = useState("a-z");
   const [showPreviewsOnly, setShowPreviewsOnly] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [now, setNow] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [theme, setTheme] = useState("light");
+  const [now, setNow] = useState(new Date());
 
-  // const DEFAULT_IMG = "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
+  // Detect system theme + screen size
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    setTheme(media.matches ? "dark" : "light");
 
-  useEffect(() => setNow(new Date()), []);
+    const handleResize = () => setIsMobile(window.innerWidth < 600);
+    handleResize();
 
+    media.addEventListener("change", (e) =>
+      setTheme(e.matches ? "dark" : "light")
+    );
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      media.removeEventListener("change", () => {});
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  // --- Date helpers ---
   const toDate = (date) => {
     if (!date || date === "N/A" || date === "Open-ended") return null;
-    const d = new Date(date);
+    const cleanDate = date.trim().slice(0, 10);
+    const d = new Date(cleanDate);
     return isNaN(d.getTime()) ? null : d;
   };
 
   const isInPreviews = (date) => {
-    if (!now) return false;
     const d = toDate(date);
     return d && d > now;
   };
@@ -30,21 +51,20 @@ export default function ShowList({ shows }) {
     if (date === "Open-ended") return "Open-ended";
     const d = toDate(date);
     if (!d) return "N/A";
-    return now
-      ? d.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })
-      : d.toISOString().split("T")[0];
+    return d.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
-  const filteredSortedShows = useMemo(() => {
+  // --- Filter + sort + search ---
+  const filteredShows = useMemo(() => {
     return shows
       .filter((show) => {
-        // Filter by type
+        const type = (show.type || show.category || "").toLowerCase();
+
         if (filter !== "All") {
-          const type = (show.type || "").toLowerCase();
           if (filter === "Musical" && !type.includes("musical")) return false;
           if (filter === "Play" && !type.includes("play")) return false;
           if (
@@ -54,13 +74,11 @@ export default function ShowList({ shows }) {
             return false;
         }
 
-        // Filter previews only
         if (showPreviewsOnly && !isInPreviews(show.openingdate)) return false;
 
-        // Filter search term
         if (
           searchTerm &&
-          !show.title.toLowerCase().includes(searchTerm.toLowerCase())
+          show.title.toLowerCase() !== searchTerm.toLowerCase().trim()
         )
           return false;
 
@@ -74,100 +92,141 @@ export default function ShowList({ shows }) {
             return a.title.localeCompare(b.title);
           case "z-a":
             return b.title.localeCompare(a.title);
-          case "opening-latest":
-            return (dateB || 0) - (dateA || 0);
           case "opening-earliest":
             return (dateA || 0) - (dateB || 0);
+          case "opening-latest":
+            return (dateB || 0) - (dateA || 0);
           default:
             return 0;
         }
       });
   }, [shows, filter, sort, showPreviewsOnly, searchTerm, now]);
 
+  // --- Theme palette ---
+  const colors =
+    theme === "dark"
+      ? {
+          background: "linear-gradient(to bottom, #0f0f0f, #1e1e1e)",
+          text: "#f0f0f0",
+          card: "rgba(255,255,255,0.08)",
+          accent: "#FA8072",
+          subtext: "#ccc",
+        }
+      : {
+          background: "linear-gradient(to bottom, #fffaf0, #ffe4e1)",
+          text: "#222",
+          card: "rgba(255,255,255,0.85)",
+          accent: "#e74c3c",
+          subtext: "#555",
+        };
+
   return (
-    <main
+    <div
       style={{
+        fontFamily: "system-ui, sans-serif",
+        background: colors.background,
+        color: colors.text,
         minHeight: "100vh",
-        backgroundColor: "black",
-        color: "white",
-        boxSizing: "border-box",
+        transition: "background 0.3s ease, color 0.3s ease",
       }}
     >
       {/* Header */}
-      <div
+      <header
         style={{
-          backgroundColor: "#FA8072",
-          color: "white",
-          textTransform: "uppercase",
-          fontWeight: "bold",
-          fontSize: "2rem",
-          textAlign: "center",
-          padding: "0.75rem 1rem",
-          letterSpacing: "0.1em",
-          fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-          marginBottom: "1rem",
-          border: "2px solid black",
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: isMobile ? "1rem" : "1.5rem 3rem",
+          textAlign: isMobile ? "center" : "left",
         }}
       >
-        Now Playing on West End
-      </div>
+        <h1
+          style={{
+            fontSize: isMobile ? "1.75rem" : "2.25rem",
+            margin: 0,
+          }}
+        >
+          Now Playing in London’s West End
+        </h1>
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          style={{
+            marginTop: isMobile ? "1rem" : 0,
+            background: colors.accent,
+            border: "none",
+            borderRadius: "8px",
+            color: theme === "dark" ? "#000" : "#fff",
+            padding: "0.6rem 1rem",
+            cursor: "pointer",
+            fontWeight: 600,
+            transition: "all 0.2s ease",
+            width: isMobile ? "100%" : "auto",
+          }}
+        >
+          {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+        </button>
+      </header>
 
       {/* Controls */}
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
-          gap: "1rem",
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "stretch" : "center",
           justifyContent: "center",
-          marginBottom: "2rem",
-          padding: "0 1rem",
-          width: "100%",
+          gap: isMobile ? "0.75rem" : "1rem",
+          flexWrap: "wrap",
+          margin: "0 auto",
+          maxWidth: "800px",
+          padding: isMobile ? "0 1rem" : "0 2rem",
         }}
       >
-        {/* Filter */}
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           style={{
-            padding: "0.5rem",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            flex: "0 0 150px", // fixed base width
-            minWidth: "200px",
+            padding: "0.75rem",
+            fontSize: "1rem",
+            borderRadius: "8px",
+            border: "1px solid #aaa",
+            width: isMobile ? "100%" : "200px",
+            background: colors.card,
+            color: colors.text,
           }}
         >
-          <option>All</option>
-          <option>Musical</option>
-          <option>Play</option>
-          <option>Other</option>
+          <option value="All">All Shows</option>
+          <option value="Musical">Musicals</option>
+          <option value="Play">Plays</option>
+          <option value="Other">Other</option>
         </select>
 
-        {/* Sort */}
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
           style={{
-            padding: "0.5rem",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            flex: "0 0 150px",
-            minWidth: "200px",
+            padding: "0.75rem",
+            fontSize: "1rem",
+            borderRadius: "8px",
+            border: "1px solid #aaa",
+            width: isMobile ? "100%" : "200px",
+            background: colors.card,
+            color: colors.text,
           }}
         >
-          <option value="a-z">Title A-Z</option>
-          <option value="z-a">Title Z-A</option>
+          <option value="a-z">Sort A–Z</option>
+          <option value="z-a">Sort Z–A</option>
           <option value="opening-earliest">Opening Earliest</option>
           <option value="opening-latest">Opening Latest</option>
         </select>
 
-        {/* Previews Only */}
         <label
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "0.25rem",
-            flex: "0 0 180px",
-            minWidth: "150px",
+            gap: "0.5rem",
+            color: colors.text,
+            fontSize: "1rem",
           }}
         >
           <input
@@ -175,189 +234,211 @@ export default function ShowList({ shows }) {
             checked={showPreviewsOnly}
             onChange={(e) => setShowPreviewsOnly(e.target.checked)}
           />
-          In Previews
+          Previews only
         </label>
 
         {/* Search */}
-        <input
-          type="text"
-          placeholder="Search by title..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            padding: "0.5rem",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            flex: "1 1 auto", // take remaining space
-            minWidth: "150px",
-          }}
-        />
-      </div>
-
-      {/* Show grid */}
-      {filteredSortedShows.length === 0 ? (
         <div
           style={{
-            textAlign: "center",
-            color: "white",
-            fontSize: "1.5rem",
-            marginTop: "4rem",
-            fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+            position: "relative",
+            width: isMobile ? "100%" : "450px",
+            flexShrink: 0,
           }}
         >
-          No shows found
+          <input
+            type="text"
+            placeholder="Search by title..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "0.75rem 2.5rem 0.75rem 1rem",
+              fontSize: "1rem",
+              borderRadius: "999px",
+              border: "1px solid #aaa",
+              background: colors.card,
+              color: colors.text,
+              transition: "all 0.2s ease",
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = colors.accent)}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "#aaa")}
+          />
+          <span
+            style={{
+              position: "absolute",
+              right: "0.75rem",
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: colors.subtext,
+              fontSize: "1.1rem",
+              pointerEvents: "none",
+            }}
+          >
+            🔍
+          </span>
         </div>
-      ) : (
-        <ul
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-            gap: "1rem",
-            padding: 0,
-            listStyle: "none",
-          }}
-        >
-          {filteredSortedShows.map(
-            ({ title, imgSrc, type, openingdate, closingdate, link }, idx) => (
-              <li key={`${title}-${type}-${idx}`}>
-                <div
+      </div>
+
+      {/* Show Grid */}
+      <ul
+        style={{
+          listStyle: "none",
+          padding: isMobile ? "1rem 0.5rem" : "2rem",
+          margin: 0,
+          display: "grid",
+          gridTemplateColumns: isMobile
+            ? "1fr"
+            : "repeat(auto-fill, minmax(220px, 1fr))",
+          gap: isMobile ? "1.25rem" : "2rem",
+          justifyItems: "center",
+        }}
+      >
+        {filteredShows.length > 0 ? (
+          filteredShows.map((show, index) => (
+            <li
+              key={index}
+              style={{
+                background: colors.card,
+                borderRadius: "12px",
+                overflow: "hidden",
+                boxShadow:
+                  theme === "dark"
+                    ? "0 4px 12px rgba(255,255,255,0.1)"
+                    : "0 4px 12px rgba(0,0,0,0.2)",
+                width: "100%",
+                maxWidth: "360px",
+                display: "flex",
+                flexDirection: "column",
+                transition: "transform 0.3s ease, box-shadow 0.3s ease",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.transform = "scale(1.02)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.transform = "scale(1)")
+              }
+            >
+              {/* Image container for fixed aspect ratio */}
+              <div
+                style={{
+                  width: "100%",
+                  height: isMobile ? "280px" : "220px",
+                  overflow: "hidden",
+                }}
+              >
+                <img
+                  src={show.imgSrc || DEFAULT_IMG}
+                  alt={show.title}
                   style={{
-                    height: "600px",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    cursor: "pointer",
-                    border: "1px solid black",
-                    borderRadius: 6,
-                    overflow: "hidden",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-                    transition: "all 0.3s ease-in-out",
-                    backgroundColor: "#FA8072",
-                    fontFamily:
-                      '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                    fontSize: "1rem",
-                    color: "#000",
-                    position: "relative",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    transition: "transform 0.3s ease",
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "white";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#FA8072";
+                  onError={(e) => (e.currentTarget.src = DEFAULT_IMG)}
+                />
+              </div>
+
+              <div
+                style={{
+                  padding: "1rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                  flexGrow: 1,
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: isMobile ? "1.1rem" : "1.3rem",
+                    margin: 0,
+                    lineHeight: 1.3,
+                    textAlign: "center",
                   }}
                 >
-                  {now && isInPreviews(openingdate) && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "0.5rem",
-                        left: "0.5rem",
-                        backgroundColor: "#d9534f",
-                        color: "white",
-                        fontWeight: "bold",
-                        padding: "0.25rem 0.5rem",
-                        borderRadius: "4px",
-                        fontSize: "0.75rem",
-                        zIndex: 10,
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Currently in Previews
-                    </div>
-                  )}
+                  {show.title}
+                </h2>
 
-                  <img
-                    src={imgSrc}
-                    alt={title || "Show poster"}
+                {show.type && (
+                  <p
                     style={{
-                      width: "100%",
-                      height: "400px",
-                      objectFit: "cover",
-                      objectPosition: "center",
-                      display: "block",
-                      transition: "transform 0.3s ease-in-out",
-                    }}
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.src = DEFAULT_IMG;
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      padding: "0.5rem 1rem",
-                      fontWeight: "600",
-                      fontSize: "1.1rem",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      fontSize: "0.9rem",
+                      textAlign: "center",
+                      color: colors.subtext,
+                      margin: 0,
                     }}
                   >
-                    {title}
-                  </div>
+                    <em>{show.type}</em>
+                  </p>
+                )}
 
-                  <div
+                {show.venue && (
+                  <p
                     style={{
-                      padding: "0 1rem",
-                      fontSize: "0.95rem",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <em>{type}</em>
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "0 1rem 1rem",
                       fontSize: "0.85rem",
-                      overflow: "hidden",
-                      flexShrink: 0,
+                      textAlign: "center",
+                      color: colors.subtext,
+                      margin: 0,
                     }}
                   >
-                    <div>
-                      <strong>Opening Date:</strong> {formatDate(openingdate)}
-                    </div>
-                    <div>
-                      <strong>Closing:</strong> {formatDate(closingdate)}
-                    </div>
-                    {link && (
-                      <div style={{ marginTop: "0.5rem" }}>
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: "inline-block",
-                            padding: "0.25rem 0.5rem",
-                            backgroundColor: "transparent",
-                            color: "black",
-                            borderRadius: "4px",
-                            border: "1px solid black",
-                            textDecoration: "none",
-                            fontWeight: "bold",
-                            transition: "background-color 0.2s ease-in-out",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#FA8072";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor =
-                              "transparent";
-                          }}
-                        >
-                          More Info
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </li>
-            )
-          )}
-        </ul>
-      )}
-    </main>
+                    📍 {show.venue}
+                  </p>
+                )}
+
+                <p
+                  style={{
+                    fontSize: "0.85rem",
+                    textAlign: "center",
+                    color: colors.subtext,
+                    margin: 0,
+                  }}
+                >
+                  Opening: {formatDate(show.openingdate)}
+                </p>
+                <p
+                  style={{
+                    fontSize: "0.85rem",
+                    textAlign: "center",
+                    color: colors.subtext,
+                    margin: 0,
+                  }}
+                >
+                  Closing: {formatDate(show.closingdate)}
+                </p>
+
+                {show.link && (
+                  <a
+                    href={show.link} // use the scraped londontheatre.co.uk link
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      marginTop: "auto",
+                      display: "inline-block",
+                      textAlign: "center",
+                      background: colors.accent,
+                      color: theme === "dark" ? "#000" : "#fff",
+                      textDecoration: "none",
+                      fontWeight: "600",
+                      padding: "0.75rem",
+                      borderRadius: "8px",
+                      marginInline: "auto",
+                      width: isMobile ? "100%" : "80%",
+                      minHeight: "44px",
+                      touchAction: "manipulation",
+                    }}
+                  >
+                    Get Tickets
+                  </a>
+                )}
+              </div>
+            </li>
+          ))
+        ) : (
+          <p style={{ textAlign: "center", fontSize: "1.2rem" }}>
+            No shows found
+          </p>
+        )}
+      </ul>
+    </div>
   );
 }
