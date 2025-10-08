@@ -214,46 +214,59 @@ export default function ShowList({ shows }) {
       {/* Show Grid */}
       <ul className="grid gap-4 px-4 md:px-12 mb-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center mt-6">
         {filteredShows.length > 0 ? (
-          filteredShows.map((show, index) => (
-            <li key={index} className="w-full max-w-[280px] flex flex-col">
-              <a
-                href={show.link || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col h-full rounded-lg overflow-hidden shadow-lg transform transition hover:scale-105"
+          filteredShows.map((show, index) => {
+            const inPreviews = isInPreviews(show.openingdate);
+            return (
+              <li
+                key={index}
+                className="w-full max-w-[280px] flex flex-col relative"
               >
-                <div className="h-72 w-full overflow-hidden sm:h-80 md:h-72">
-                  <img
-                    src={show.imgSrc || DEFAULT_IMG}
-                    alt={show.title}
-                    className="w-full h-full object-cover transition-transform"
-                    onError={(e) => (e.currentTarget.src = DEFAULT_IMG)}
-                  />
-                </div>
-                <div className="p-4 flex flex-col gap-1 bg-white/80 dark:bg-gray-800/90 h-40 justify-between">
-                  <h2 className="text-center font-semibold text-lg">
-                    {show.title}
-                  </h2>
-                  {show.type && (
-                    <p className="text-center text-sm italic text-gray-500 dark:text-gray-400">
-                      {show.type}
-                    </p>
+                <a
+                  href={show.link || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col h-full rounded-lg overflow-hidden shadow-lg transform transition hover:scale-105 relative"
+                >
+                  {/* Diagonal Ribbon */}
+                  {inPreviews && (
+                    <div className="absolute top-3 right-[-40px] w-32 text-center bg-yellow-400 text-black font-bold text-xs py-1 transform rotate-45 shadow-md z-10">
+                      Previews
+                    </div>
                   )}
-                  {show.venue && (
+
+                  <div className="h-72 w-full overflow-hidden sm:h-80 md:h-72">
+                    <img
+                      src={show.imgSrc || DEFAULT_IMG}
+                      alt={show.title}
+                      className="w-full h-full object-cover transition-transform"
+                      onError={(e) => (e.currentTarget.src = DEFAULT_IMG)}
+                    />
+                  </div>
+                  <div className="p-4 flex flex-col gap-1 bg-white/80 dark:bg-gray-800/90 h-40 justify-between">
+                    <h2 className="text-center font-semibold text-lg">
+                      {show.title}
+                    </h2>
+                    {show.type && (
+                      <p className="text-center text-sm italic text-gray-500 dark:text-gray-400">
+                        {show.type}
+                      </p>
+                    )}
+                    {show.venue && (
+                      <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                        📍 {show.venue}
+                      </p>
+                    )}
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                      📍 {show.venue}
+                      Opening: {formatDate(show.openingdate)}
                     </p>
-                  )}
-                  <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                    Opening: {formatDate(show.openingdate)}
-                  </p>
-                  <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                    Closing: {formatDate(show.closingdate)}
-                  </p>
-                </div>
-              </a>
-            </li>
-          ))
+                    <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                      Closing: {formatDate(show.closingdate)}
+                    </p>
+                  </div>
+                </a>
+              </li>
+            );
+          })
         ) : (
           <li className="col-span-full text-center text-lg text-gray-500 dark:text-gray-400">
             No shows found
