@@ -34,45 +34,33 @@ export default function ShowList({ shows }) {
   // ----------------- Date Parsing -----------------
   const parseDate = (dateStr) => {
     if (!dateStr || dateStr === "N/A" || dateStr === "Open-ended") return null;
-
     dateStr = dateStr.trim();
-
-    // YYYY-MM-DD format
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
       const [y, m, d] = dateStr.split("-").map(Number);
-      if (d < 1 || d > 31)
-        return new Date(`${y}-${m.toString().padStart(2, "0")}-01`);
-      return new Date(
-        `${y}-${m.toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`
-      );
+      return new Date(y, m - 1, d);
     }
-
-    // Month YYYY format
     const mYMatch = dateStr.match(/([A-Za-z]+)\s+(\d{4})/);
     if (mYMatch) {
-      const monthNames = {
-        January: 0,
-        February: 1,
-        March: 2,
-        April: 3,
-        May: 4,
-        June: 5,
-        July: 6,
-        August: 7,
-        September: 8,
-        October: 9,
-        November: 10,
-        December: 11,
-      };
-      const month = monthNames[mYMatch[1]] ?? 0;
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      const month = months.indexOf(mYMatch[1]) ?? 0;
       const year = parseInt(mYMatch[2]);
       return new Date(year, month, 1);
     }
-
-    // Year only
     const yearMatch = dateStr.match(/\d{4}/);
     if (yearMatch) return new Date(parseInt(yearMatch[0]), 0, 1);
-
     return null;
   };
 
@@ -143,15 +131,19 @@ export default function ShowList({ shows }) {
   // ----------------- Render -----------------
   return (
     <div
-      className={`flex flex-col min-h-screen ${
+      className={`flex flex-col min-h-screen font-sans ${
         darkMode
           ? "bg-gray-900 text-gray-100"
           : "bg-gradient-to-b from-pink-50 to-pink-100 text-gray-900"
-      } font-sans`}
+      }`}
     >
       {/* Header */}
       <header className="flex flex-col items-center p-4 md:flex-row md:justify-between md:px-12">
-        <h1 className="text-2xl md:text-4xl font-bold text-center md:text-left">
+        <h1
+          className={`text-2xl md:text-4xl font-bold text-center md:text-left ${
+            darkMode ? "text-white-300" : "text-gray-900"
+          }`}
+        >
           Now Playing in London’s West End
         </h1>
         <button
@@ -168,11 +160,12 @@ export default function ShowList({ shows }) {
       </header>
 
       {/* Controls */}
-      <div className="sticky top-0 z-20 bg-white dark:bg-gray-900 px-4 md:px-8 py-3 md:py-4 border-b border-gray-300 dark:border-gray-700 flex flex-col sm:flex-col md:flex-row flex-wrap gap-2 sm:gap-2 md:gap-3 items-center">
+      {/* Controls */}
+      <div className="sticky top-0 z-20 bg-white px-4 md:px-8 py-3 md:py-4 border-b border-gray-300 flex flex-col sm:flex-col md:flex-row flex-wrap gap-2 sm:gap-2 md:gap-3 items-center">
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="w-full md:w-36 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+          className="w-full md:w-36 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900"
         >
           <option value="All">All Shows</option>
           <option value="Musical">Musicals</option>
@@ -183,7 +176,7 @@ export default function ShowList({ shows }) {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="w-full md:w-36 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+          className="w-full md:w-36 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900"
         >
           <option value="a-z">Sort A–Z</option>
           <option value="z-a">Sort Z–A</option>
@@ -191,7 +184,7 @@ export default function ShowList({ shows }) {
           <option value="opening-latest">Latest</option>
         </select>
 
-        <label className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-gray-900">
           <input
             type="checkbox"
             checked={showPreviewsOnly}
@@ -207,7 +200,7 @@ export default function ShowList({ shows }) {
           aria-label="Search shows by title"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full md:w-96 px-3 py-2 rounded-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+          className="w-full md:w-96 px-3 py-2 rounded-full border border-gray-300 bg-white text-gray-900"
         />
       </div>
 
@@ -229,7 +222,7 @@ export default function ShowList({ shows }) {
                 >
                   {/* Diagonal Ribbon */}
                   {inPreviews && (
-                    <div className="absolute top-3 right-[-40px] w-32 text-center bg-yellow-400 text-black font-bold text-xs py-1 transform rotate-45 shadow-md z-10">
+                    <div className="absolute top-2 right-[-35px] w-28 text-center bg-yellow-400 text-black font-bold text-xs py-1 transform rotate-45 shadow-md z-10 pointer-events-none">
                       Previews
                     </div>
                   )}
@@ -237,29 +230,30 @@ export default function ShowList({ shows }) {
                   <div className="h-72 w-full overflow-hidden sm:h-80 md:h-72">
                     <img
                       src={show.imgSrc || DEFAULT_IMG}
-                      alt={show.title}
+                      alt={`Poster for ${show.title}`}
                       className="w-full h-full object-cover transition-transform"
                       onError={(e) => (e.currentTarget.src = DEFAULT_IMG)}
+                      loading="lazy"
                     />
                   </div>
                   <div className="p-4 flex flex-col gap-1 bg-white/80 dark:bg-gray-800/90 h-40 justify-between">
-                    <h2 className="text-center font-semibold text-lg">
+                    <h2 className="text-center font-semibold text-lg text-gray-900 dark:text-gray-100">
                       {show.title}
                     </h2>
                     {show.type && (
-                      <p className="text-center text-sm italic text-gray-500 dark:text-gray-400">
+                      <p className="text-center text-sm italic text-gray-700 dark:text-gray-300">
                         {show.type}
                       </p>
                     )}
                     {show.venue && (
-                      <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-center text-sm text-gray-700 dark:text-gray-300">
                         📍 {show.venue}
                       </p>
                     )}
-                    <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-center text-sm text-gray-700 dark:text-gray-300">
                       Opening: {formatDate(show.openingdate)}
                     </p>
-                    <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-center text-sm text-gray-700 dark:text-gray-300">
                       Closing: {formatDate(show.closingdate)}
                     </p>
                   </div>
@@ -268,7 +262,7 @@ export default function ShowList({ shows }) {
             );
           })
         ) : (
-          <li className="col-span-full text-center text-lg text-gray-500 dark:text-gray-400">
+          <li className="col-span-full text-center text-lg text-gray-700 dark:text-gray-300">
             No shows found
           </li>
         )}
