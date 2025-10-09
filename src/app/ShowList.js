@@ -160,7 +160,6 @@ export default function ShowList({ shows }) {
       </header>
 
       {/* Controls */}
-      {/* Controls */}
       <div className="sticky top-0 z-20 bg-white px-4 md:px-8 py-3 md:py-4 border-b border-gray-300 flex flex-col sm:flex-col md:flex-row flex-wrap gap-2 sm:gap-2 md:gap-3 items-center">
         <select
           value={filter}
@@ -227,7 +226,7 @@ export default function ShowList({ shows }) {
                     </div>
                   )}
 
-                  <div className="h-72 w-full overflow-hidden sm:h-80 md:h-72">
+                  <div className="h-110 w-full overflow-hidden sm:h-110 md:h-110">
                     <img
                       src={show.imgSrc || DEFAULT_IMG}
                       alt={`Poster for ${show.title}`}
