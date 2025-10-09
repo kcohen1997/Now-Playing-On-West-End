@@ -22,13 +22,11 @@ function normalizeTitle(title) {
 
 function normalizeUrl(url) {
   if (!url) return null;
-  url = url.trim().replace(/&amp;/g, "&");
-  if (url.startsWith("//")) url = "https:" + url;
-  if (url.startsWith("/")) url = BASE_URL + url;
-  if (url.startsWith("http://")) url = url.replace("http://", "https://");
-  if (!url.startsWith("https://"))
-    url = BASE_URL + "/" + url.replace(/^(\.\.\/)+/, "");
-  return url;
+  try {
+    return new URL(url, BASE_URL).toString();
+  } catch {
+    return null;
+  }
 }
 
 async function validateImage(url) {
@@ -44,7 +42,7 @@ async function validateImage(url) {
 // ---------- Static HTML Scraper ----------
 async function getWestEndShowsStatic() {
   try {
-    const { data } = await axios.get(`${BASE_URL}/whats-on`);
+    const { data } = await axios.get(`${BASE_URL}/whats-on?today=true`);
     const $ = cheerio.load(data);
 
     const shows = [];
@@ -207,6 +205,9 @@ async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
     if (bestScore > 0.9) matched = bestMatch;
   }
 
+  // ✅ Skip if no match in HTML (only include shows present on both sources)
+  if (!matched) return null;
+
   // Image logic: HTML > Wikipedia table cell > Wikipedia infobox > default
   let imgSrc = matched?.imgSrc || wikiShow.wikiImg || null;
   if (!imgSrc && wikiShow.wikiLink) {
@@ -230,7 +231,7 @@ async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
 export default async function Page() {
   const stringSimilarity = (await import("string-similarity")).default;
   const pLimit = (await import("p-limit")).default;
-  const limit = pLimit(5); // max 5 concurrent fetches
+  const limit = pLimit(5);
 
   const { htmlShows, wikiShows } = await getCachedShows();
 
@@ -241,7 +242,7 @@ export default async function Page() {
   );
 
   const enrichedShows = enrichedShowsResults
-    .filter((r) => r.status === "fulfilled")
+    .filter((r) => r.status === "fulfilled" && r.value !== null)
     .map((r) => r.value);
 
   if (enrichedShows.length === 0) {

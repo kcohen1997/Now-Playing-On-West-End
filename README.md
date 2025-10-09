@@ -12,7 +12,7 @@ This application is hosted online on <a href="https://vercel.com" target="_blank
 
 The following public sources are used for this project:
 
-- <a href="https://www.londontheatre.co.uk/whats-on" target="_blank">www.londontheatre.co.uk </a>: Displays up-to-date West End show list and photos
+- <a href="https://www.londontheatre.co.uk/whats-on?today=true" target="_blank">www.londontheatre.co.uk </a>: Displays up-to-date West End show list and photos
 - <a href="https://en.wikipedia.org/wiki/Broadway_theatre" target="_blank">Wikipedia – Broadway Theatre</a>: Displays up-to-date West End opening and closing dates (photos from Wikipedia are used as backup if previous link does not have it)
 
 ---
