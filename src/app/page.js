@@ -1,17 +1,21 @@
-import ShowList from "./ShowList";
-import NodeCache from "node-cache";
-import axios from "axios";
-import * as cheerio from "cheerio";
+import ShowList from "./ShowList"; // Component to render list of shows
+import NodeCache from "node-cache"; // Simple in-memory caching
+import axios from "axios"; // HTTP client for fetching pages
+import * as cheerio from "cheerio"; // jQuery-like HTML parser
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+// ---------- Page configuration ----------
+export const dynamic = "force-dynamic"; // Forces server-side rendering
+export const runtime = "nodejs"; // Ensures Node.js runtime (needed for axios & cheerio)
 
-const cache = new NodeCache({ stdTTL: 60 * 60 });
-const BASE_URL = "https://www.londontheatre.co.uk";
+// ---------- Cache & constants ----------
+const cache = new NodeCache({ stdTTL: 60 * 60 }); // Cache with 1 hour TTL
+const BASE_URL = "https://www.londontheatre.co.uk"; // Base URL for relative links
 const DEFAULT_IMG =
-  "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg";
+  "https://upload.wikimedia.org/wikipedia/commons/e/eb/London_%2844761485915%29.jpg"; // Fallback image
 
-// ---------- Helpers ----------
+// ---------- Helper functions ----------
+
+// Normalize show titles for comparison (remove punctuation, lowercase, trim)
 function normalizeTitle(title) {
   return title
     .toLowerCase()
@@ -20,6 +24,7 @@ function normalizeTitle(title) {
     .trim();
 }
 
+// Normalize URLs, resolve relative paths
 function normalizeUrl(url) {
   if (!url) return null;
   try {
@@ -29,6 +34,7 @@ function normalizeUrl(url) {
   }
 }
 
+// Check if image exists by sending HEAD request
 async function validateImage(url) {
   if (!url) return null;
   try {
@@ -39,7 +45,7 @@ async function validateImage(url) {
   }
 }
 
-// ---------- Static HTML Scraper ----------
+// Static HTML Scraper for West End shows
 async function getWestEndShowsStatic() {
   try {
     const { data } = await axios.get(`${BASE_URL}/whats-on?today=true`);
@@ -47,18 +53,21 @@ async function getWestEndShowsStatic() {
 
     const shows = [];
 
+    // Loop through poster divs
     $("div[data-test-id^='poster-']").each((_, el) => {
       const posterDiv = $(el);
 
       const title =
         posterDiv.attr("data-test-id")?.replace("poster-", "") ||
-        "Unknown Show";
+        "Unknown Show"; // Fallback title
 
+      // Grab first anchor tag for show link
       const aTag = posterDiv.find("a").first();
       const url = aTag.attr("href")
         ? normalizeUrl(BASE_URL + aTag.attr("href"))
         : null;
 
+      // Grab responsive image (desktop first, then default)
       let imgSrc =
         posterDiv
           .find('source[media="(min-width: 768px)"]')
@@ -67,8 +76,10 @@ async function getWestEndShowsStatic() {
         posterDiv.find("source").first().attr("srcset") ||
         DEFAULT_IMG;
 
+      // Take only first image if multiple are provided
       if (imgSrc.includes(",")) imgSrc = imgSrc.split(",")[0].trim();
 
+      // Push show object
       shows.push({
         title,
         url,
@@ -87,7 +98,7 @@ async function getWestEndShowsStatic() {
   }
 }
 
-// ---------- Wikipedia Scraper ----------
+// Wikipedia Scraper for additional show info
 async function getWestEndShowInfoFromWikipedia() {
   try {
     const res = await axios.get(
@@ -102,19 +113,19 @@ async function getWestEndShowInfoFromWikipedia() {
 
     const $ = cheerio.load(res.data);
     const shows = [];
-    const table = $("table.wikitable.sortable").first();
+    const table = $("table.wikitable.sortable").first(); // Grab first sortable wikitable
     if (!table.length) return [];
 
     table.find("tbody tr").each((_, el) => {
       const cells = $(el).find("td");
-      if (cells.length < 5) return;
+      if (cells.length < 5) return; // Skip invalid rows
 
       const currentProductionRaw =
         $(cells[4]).text().trim() || $(cells[3]).text().trim();
       if (!currentProductionRaw || currentProductionRaw === "•") return;
 
       const currentProduction = currentProductionRaw
-        .replace(/(\s)?\[\d+\]/g, "")
+        .replace(/(\s)?\[\d+\]/g, "") // Remove citations like [1], [2]
         .trim();
 
       const linkElement = $(cells[4]).find("a").first();
@@ -143,7 +154,7 @@ async function getWestEndShowInfoFromWikipedia() {
   }
 }
 
-// ---------- Wikipedia Infobox Image ----------
+// Wikipedia Image Fetcher
 async function getWikiInfoboxImage(wikiLink) {
   if (!wikiLink) return null;
   try {
@@ -164,11 +175,12 @@ async function getWikiInfoboxImage(wikiLink) {
   }
 }
 
-// ---------- Cached Data Fetcher ----------
+// Cached Data Fetcher
 async function getCachedShows() {
   const cached = cache.get("west-end-shows");
-  if (cached) return cached;
+  if (cached) return cached; // Return if cache exists
 
+  // Fetch both sources in parallel
   const [htmlShows, wikiShows] = await Promise.all([
     getWestEndShowsStatic(),
     getWestEndShowInfoFromWikipedia(),
@@ -179,16 +191,16 @@ async function getCachedShows() {
   return data;
 }
 
-// ---------- Enrich Wikipedia Show ----------
+// ---------- Enrich Wikipedia Show with HTML info ----------
 async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
   const normWikiTitle = normalizeTitle(wikiShow.title);
 
-  // Exact match first
+  // Try exact title match
   let matched = htmlShows.find(
     (s) => normalizeTitle(s.title) === normWikiTitle
   );
 
-  // Fallback: best similarity match
+  // If no exact match, find best similarity match
   if (!matched) {
     let bestMatch = null;
     let bestScore = 0;
@@ -205,10 +217,10 @@ async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
     if (bestScore > 0.9) matched = bestMatch;
   }
 
-  // ✅ Skip if no match in HTML (only include shows present on both sources)
+  // Skip shows not found on HTML page
   if (!matched) return null;
 
-  // Image logic: HTML > Wikipedia table cell > Wikipedia infobox > default
+  // Determine best image: HTML > Wikipedia table > Wikipedia infobox > default
   let imgSrc = matched?.imgSrc || wikiShow.wikiImg || null;
   if (!imgSrc && wikiShow.wikiLink) {
     imgSrc = await getWikiInfoboxImage(wikiShow.wikiLink);
@@ -216,7 +228,7 @@ async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
   imgSrc = await validateImage(imgSrc);
   if (!imgSrc) imgSrc = DEFAULT_IMG;
 
-  // Link logic: HTML show link > Wikipedia page
+  // Determine best link: HTML > Wikipedia
   const link =
     normalizeUrl(matched?.url) || normalizeUrl(wikiShow.wikiLink) || "#";
 
@@ -227,14 +239,14 @@ async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
   };
 }
 
-// ---------- Main Page Component ----------
 export default async function Page() {
   const stringSimilarity = (await import("string-similarity")).default;
   const pLimit = (await import("p-limit")).default;
-  const limit = pLimit(5);
+  const limit = pLimit(5); // Limit concurrency to 5
 
   const { htmlShows, wikiShows } = await getCachedShows();
 
+  // Enrich each Wikipedia show with HTML data concurrently
   const enrichedShowsResults = await Promise.allSettled(
     wikiShows.map((wikiShow) =>
       limit(() => enrichShow(wikiShow, htmlShows, stringSimilarity))
@@ -245,6 +257,7 @@ export default async function Page() {
     .filter((r) => r.status === "fulfilled" && r.value !== null)
     .map((r) => r.value);
 
+  // If no shows found, show fallback message
   if (enrichedShows.length === 0) {
     return (
       <p className="text-center text-gray-500 mt-10">
@@ -253,5 +266,6 @@ export default async function Page() {
     );
   }
 
+  // Render ShowList component with enriched shows
   return <ShowList shows={enrichedShows} />;
 }
