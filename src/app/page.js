@@ -216,7 +216,7 @@ async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
         bestMatch = s;
       }
     }
-    if (bestScore > 0.9) matched = bestMatch;
+    if (bestScore > 0.5) matched = bestMatch;
   }
 
   // Skip shows not found on HTML page
