@@ -2,6 +2,8 @@ import ShowList from "./ShowList"; // Component to render list of shows
 import NodeCache from "node-cache"; // Simple in-memory caching
 import axios from "axios"; // HTTP client for fetching pages
 import * as cheerio from "cheerio"; // jQuery-like HTML parser
+import stringSimilarity from "string-similarity";
+import pLimit from "p-limit";
 
 // ---------- Page configuration ----------
 export const dynamic = "force-dynamic"; // Forces server-side rendering
@@ -240,8 +242,6 @@ async function enrichShow(wikiShow, htmlShows, stringSimilarity) {
 }
 
 export default async function Page() {
-  const stringSimilarity = (await import("string-similarity")).default;
-  const pLimit = (await import("p-limit")).default;
   const limit = pLimit(5); // Limit concurrency to 5
 
   const { htmlShows, wikiShows } = await getCachedShows();
